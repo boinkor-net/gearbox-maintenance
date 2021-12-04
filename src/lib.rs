@@ -64,7 +64,7 @@ impl TryFrom<i64> for Error {
 pub struct Torrent {
     pub id: i64,
     pub name: String,
-    pub done_date: DateTime<Utc>,
+    pub done_date: Option<DateTime<Utc>>,
     pub error: Error,
     pub error_string: String,
     pub upload_ratio: f32,
@@ -120,10 +120,9 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
         Ok(Torrent {
             id: ensure_field(t.id, "id")?,
             name: ensure_field(t.name, "name")?,
-            done_date: {
-                let epoch = ensure_field(t.done_date, "done_date")?;
+            done_date: t.done_date.map(|epoch| {
                 DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(epoch, 0), Utc)
-            },
+            }),
             error: Error::try_from(ensure_field(t.error, "error")?).context("parsing error")?,
             error_string: ensure_field(t.error_string, "error_string")?,
             upload_ratio: ensure_field(t.upload_ratio, "upload_ratio")?,

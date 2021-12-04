@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use chrono::{Duration, Utc};
 use dotenv::dotenv;
 use gearbox_maintenance::Torrent;
 use log::info;
@@ -37,5 +38,15 @@ async fn main() -> Result<()> {
         .filter(|t| t.upload_ratio > 1.01)
         .collect();
     info!("torrents with high ratios: {:?}", high_ratios);
+
+    let olds: Vec<&Torrent> = all_torrents
+        .iter()
+        .filter(|t| {
+            t.done_date
+                .map(|done| Utc::now() - done > Duration::hours(120))
+                == Some(true)
+        })
+        .collect();
+    info!("torrents with long seed times: {:?}", olds);
     Ok(())
 }
