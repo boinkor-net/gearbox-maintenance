@@ -15,10 +15,12 @@ maintenance = { status = "passively-maintained" }
 [dependencies]
 transmission-rpc = { git = "git://github.com/antifuchs/transmission-rpc/", branch = "done-date"}
 tokio = { version = "1.14.0", features = ["full"] }
-dotenv = "0.15.0"
 env_logger = "0.9.0"
 log = "0.4.0"
 anyhow = "1.0.51"
 chrono = "0.4.19"
 url = "2.2.2"
 enum-iterator = "0.7.0"
+starlark = "0.6.0"
+gazebo = "0.4.4"
+structopt = "0.3"

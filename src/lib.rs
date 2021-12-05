@@ -1,3 +1,5 @@
+pub mod config;
+
 use anyhow::{anyhow, Context};
 use std::convert::TryFrom;
 
