@@ -56,7 +56,7 @@ async fn main() -> Result<()> {
                     if !opt.take_action {
                         info!("Would delete {}: matches {}", torrent.name, is_match);
                     } else {
-                        debug!("Will delete {}: matches {}", torrent.name, is_match);
+                        info!("Will delete {}: matches {}", torrent.name, is_match);
                     }
                     if policy.delete_data {
                         delete_ids_with_data.push(Id::Hash(torrent.hash.to_string()));
@@ -67,25 +67,28 @@ async fn main() -> Result<()> {
             }
         }
         if opt.take_action {
-            info!(
-                "Deleting data for {} torrents...",
-                delete_ids_with_data.len()
-            );
-            client
-                .torrent_remove(delete_ids_with_data, true)
-                .await
-                .map_err(|e| anyhow!(e.to_string()))
-                .context("Deleting torrents with local data")?;
-
-            info!(
-                "Deleting torrents without data for {} torrents...",
-                delete_ids_without_data.len()
-            );
-            client
-                .torrent_remove(delete_ids_without_data, true)
-                .await
-                .map_err(|e| anyhow!(e.to_string()))
-                .context("Deleting torrent metadata alone")?;
+            if delete_ids_with_data.len() > 0 {
+                info!(
+                    "Deleting data for {} torrents...",
+                    delete_ids_with_data.len()
+                );
+                client
+                    .torrent_remove(delete_ids_with_data, true)
+                    .await
+                    .map_err(|e| anyhow!(e.to_string()))
+                    .context("Deleting torrents with local data")?;
+            }
+            if delete_ids_without_data.len() > 0 {
+                info!(
+                    "Deleting torrents without data for {} torrents...",
+                    delete_ids_without_data.len()
+                );
+                client
+                    .torrent_remove(delete_ids_without_data, true)
+                    .await
+                    .map_err(|e| anyhow!(e.to_string()))
+                    .context("Deleting torrent metadata alone")?;
+            }
         }
     }
 
