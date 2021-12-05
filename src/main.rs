@@ -1,15 +1,21 @@
-use anyhow::{anyhow, Result};
-use chrono::{Duration, Utc};
+use anyhow::{anyhow, Context, Result};
 use gearbox_maintenance::{config::Config, Torrent};
-use log::info;
+use log::{debug, info};
 use std::{convert::TryFrom, path::PathBuf};
 use structopt::StructOpt;
-use transmission_rpc::{types::BasicAuth, TransClient};
+use transmission_rpc::{
+    types::{BasicAuth, Id},
+    TransClient,
+};
 
 #[derive(StructOpt)]
 struct Opt {
     /// The config file to load
     config: PathBuf,
+
+    /// Actually perform policy actions
+    #[structopt(short = "f")]
+    take_action: bool,
 }
 
 fn init_logging() {
@@ -23,6 +29,8 @@ async fn main() -> Result<()> {
 
     init_logging();
     for instance in Config::configure(&opt.config)? {
+        debug!("Running on instance {:?}", instance);
+
         let url = instance.transmission.url;
         let basic_auth = BasicAuth {
             user: instance.transmission.user.unwrap_or("".to_string()),
@@ -38,24 +46,47 @@ async fn main() -> Result<()> {
             .into_iter()
             .map(Torrent::try_from)
             .collect::<Result<_, anyhow::Error>>()?;
-        let failed_torrents: Vec<&Torrent> = all_torrents.iter().filter(|t| !t.is_ok()).collect();
-        info!("torrents in error states: {:?}", failed_torrents);
 
-        let high_ratios: Vec<&Torrent> = all_torrents
-            .iter()
-            .filter(|t| t.upload_ratio > 1.01)
-            .collect();
-        info!("torrents with high ratios: {:?}", high_ratios);
+        let mut delete_ids_with_data: Vec<Id> = Default::default();
+        let mut delete_ids_without_data: Vec<Id> = Default::default();
+        for torrent in all_torrents {
+            for policy in instance.policies.iter() {
+                let is_match = policy.match_when.matches_torrent(&torrent);
+                if is_match.is_match() {
+                    if !opt.take_action {
+                        info!("Would delete {}: matches {}", torrent.name, is_match);
+                    } else {
+                        debug!("Will delete {}: matches {}", torrent.name, is_match);
+                    }
+                    if policy.delete_data {
+                        delete_ids_with_data.push(Id::Hash(torrent.hash.to_string()));
+                    } else {
+                        delete_ids_without_data.push(Id::Hash(torrent.hash.to_string()));
+                    }
+                }
+            }
+        }
+        if opt.take_action {
+            info!(
+                "Deleting data for {} torrents...",
+                delete_ids_with_data.len()
+            );
+            client
+                .torrent_remove(delete_ids_with_data, true)
+                .await
+                .map_err(|e| anyhow!(e.to_string()))
+                .context("Deleting torrents with local data")?;
 
-        let olds: Vec<&Torrent> = all_torrents
-            .iter()
-            .filter(|t| {
-                t.done_date
-                    .map(|done| Utc::now() - done > Duration::hours(120))
-                    == Some(true)
-            })
-            .collect();
-        info!("torrents with long seed times: {:?}", olds);
+            info!(
+                "Deleting torrents without data for {} torrents...",
+                delete_ids_without_data.len()
+            );
+            client
+                .torrent_remove(delete_ids_without_data, true)
+                .await
+                .map_err(|e| anyhow!(e.to_string()))
+                .context("Deleting torrent metadata alone")?;
+        }
     }
 
     Ok(())

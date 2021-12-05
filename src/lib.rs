@@ -65,12 +65,14 @@ impl TryFrom<i64> for Error {
 #[derive(PartialEq, Clone)]
 pub struct Torrent {
     pub id: i64,
+    pub hash: String,
     pub name: String,
     pub done_date: Option<DateTime<Utc>>,
     pub error: Error,
     pub error_string: String,
     pub upload_ratio: f32,
     pub status: Status,
+    pub num_files: usize,
     pub trackers: Vec<Url>,
 }
 
@@ -85,6 +87,7 @@ impl std::fmt::Debug for Torrent {
             .field("error_string", &self.error_string)
             .field("upload_ratio", &self.upload_ratio)
             .field("status", &self.status)
+            .field("num_files", &self.num_files)
             .field("trackers", &trackers)
             .finish()
     }
@@ -95,12 +98,14 @@ impl Torrent {
         use TorrentGetField::*;
         Some(vec![
             Id,
+            HashString,
             Name,
             Error,
             Errorstring,
             Status,
             Uploadratio,
             Donedate,
+            Files,
             Trackers,
         ])
     }
@@ -121,6 +126,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
     fn try_from(t: transmission_rpc::types::Torrent) -> Result<Self, Self::Error> {
         Ok(Torrent {
             id: ensure_field(t.id, "id")?,
+            hash: ensure_field(t.hash_string, "hash_string")?,
             name: ensure_field(t.name, "name")?,
             done_date: t.done_date.map(|epoch| {
                 DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(epoch, 0), Utc)
@@ -130,6 +136,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
             upload_ratio: ensure_field(t.upload_ratio, "upload_ratio")?,
             status: Status::try_from(ensure_field(t.status, "status")?)
                 .context("Parsing status")?,
+            num_files: ensure_field(t.files, "files")?.len(),
             trackers: ensure_field(t.trackers, "trackers")?
                 .into_iter()
                 .map(|t| Url::parse(&t.announce))

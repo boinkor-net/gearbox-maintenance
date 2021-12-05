@@ -24,3 +24,8 @@ enum-iterator = "0.7.0"
 starlark = "0.6.0"
 gazebo = "0.4.4"
 structopt = "0.3"
+parse_duration = "2.1.1"
+enum-kinds = "0.5.1"
+
+[dev-dependencies]
+test-case = "1.2.1"
