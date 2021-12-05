@@ -52,11 +52,11 @@ impl Config {
         module.set("False", Value::new_bool(false));
 
         let mut eval = Evaluator::new(&module);
-        let mut loader = ReturnFileLoader { modules: &modules };
-        eval.set_loader(&mut loader);
+        let loader = ReturnFileLoader { modules: &modules };
+        eval.set_loader(&loader);
         eval.extra = Some(self); // TODO: get rid of extra
         eval.eval_module(ast, &globals)?;
-        Ok(module.freeze()?)
+        module.freeze()
     }
 }
 
@@ -92,7 +92,7 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         } else {
             None
         };
-        Ok(Condition {
+        Condition {
             trackers: trackers.into_iter().map(String::from).collect(),
             min_file_count,
             max_file_count,
@@ -100,7 +100,7 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
             max_ratio: max_ratio.map(|f| f.0),
             max_seeding_time,
         }
-        .sanity_check()?)
+        .sanity_check()
     }
 
     fn delete_policy(r#match: &Condition, delete_data: Option<bool>) -> DeletePolicy {

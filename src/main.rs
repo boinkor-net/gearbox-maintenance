@@ -33,8 +33,11 @@ async fn main() -> Result<()> {
 
         let url = instance.transmission.url;
         let basic_auth = BasicAuth {
-            user: instance.transmission.user.unwrap_or("".to_string()),
-            password: instance.transmission.password.unwrap_or("".to_string()),
+            user: instance.transmission.user.unwrap_or_else(|| "".to_string()),
+            password: instance
+                .transmission
+                .password
+                .unwrap_or_else(|| "".to_string()),
         };
         let client = TransClient::with_auth(&url, basic_auth);
         let all_torrents: Vec<Torrent> = client
@@ -67,7 +70,7 @@ async fn main() -> Result<()> {
             }
         }
         if opt.take_action {
-            if delete_ids_with_data.len() > 0 {
+            if !delete_ids_with_data.is_empty() {
                 info!(
                     "Deleting data for {} torrents...",
                     delete_ids_with_data.len()
@@ -78,7 +81,7 @@ async fn main() -> Result<()> {
                     .map_err(|e| anyhow!(e.to_string()))
                     .context("Deleting torrents with local data")?;
             }
-            if delete_ids_without_data.len() > 0 {
+            if !delete_ids_without_data.is_empty() {
                 info!(
                     "Deleting torrents without data for {} torrents...",
                     delete_ids_without_data.len()
