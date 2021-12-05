@@ -15,10 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_toolchain: [nightly, stable]
+        rust_toolchain: [nightly-2021-12-05, nightly]
         cargo_args:
           - ""
-          # - "--no-default-features --features no_std"
     steps:
       - uses: actions/checkout@v2.3.4
       - uses: actions-rs/toolchain@v1
