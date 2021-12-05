@@ -62,11 +62,22 @@ impl Config {
 
 #[starlark_module]
 fn transmission_config(builder: &mut GlobalsBuilder) {
-    fn transmission(url: &str, user: Option<&str>, password: Option<&str>) -> Transmission {
+    fn transmission(
+        url: &str,
+        user: Option<&str>,
+        password: Option<&str>,
+        poll_interval: Option<&str>,
+    ) -> Transmission {
+        let poll_interval = if let Some(i) = poll_interval {
+            Duration::from_std(parse_duration::parse(i)?)?
+        } else {
+            Duration::minutes(5)
+        };
         Ok(Transmission {
             url: url.to_string(),
             user: user.map(|p| p.to_string()),
             password: password.map(|p| p.to_string()),
+            poll_interval,
         })
     }
 

@@ -1,5 +1,6 @@
 use std::fmt;
 
+use chrono::Duration;
 use starlark::{starlark_simple_value, starlark_type, values::StarlarkValue};
 
 /// A transmission instance
@@ -8,6 +9,7 @@ pub struct Transmission {
     pub url: String,
     pub user: Option<String>,
     pub password: Option<String>,
+    pub poll_interval: Duration,
 }
 
 impl fmt::Debug for Transmission {
