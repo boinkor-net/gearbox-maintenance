@@ -5,7 +5,7 @@ use gearbox_maintenance::{
 };
 use log::{debug, info, warn};
 use once_cell::sync::Lazy;
-use prometheus::{register_histogram_vec, HistogramVec};
+use prometheus::{register_counter_vec, register_histogram_vec, CounterVec, HistogramVec};
 use std::{convert::TryFrom, net::SocketAddr, path::PathBuf, sync::Arc};
 use structopt::StructOpt;
 use tokio::{task, time};
@@ -42,10 +42,46 @@ static TICK_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
     .unwrap()
 });
 
+static TICK_FAILURES: Lazy<CounterVec> = Lazy::new(|| {
+    register_counter_vec!(
+        "instance_fetch_failure_count",
+        "Number of times that fetching from the instance failed",
+        &["transmission_url"]
+    )
+    .unwrap()
+});
+
+/// Adds a 1 to a `prometheus::core::GenericCounter` when it is dropped.
+struct FailureCounter<P: prometheus::core::Atomic>(prometheus::core::GenericCounter<P>, bool);
+
+impl<P: prometheus::core::Atomic> FailureCounter<P> {
+    /// Create a failure counter that increments a prometheus counter unless told not to.
+    fn new(counter: prometheus::core::GenericCounter<P>) -> Self {
+        Self(counter, true)
+    }
+
+    /// Declare the operation a success, and don't increment the failure counter.
+    fn succeed(self) {
+        let mut fc = self;
+        fc.1 = false;
+    }
+}
+
+impl<P: prometheus::core::Atomic> Drop for FailureCounter<P> {
+    fn drop(&mut self) {
+        if self.1 {
+            self.0.inc();
+        }
+    }
+}
+
 async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> {
     let _timer = TICK_DURATION
         .get_metric_with_label_values(&[&instance.transmission.url])?
         .start_timer();
+    let status = FailureCounter::new(
+        TICK_FAILURES.get_metric_with_label_values(&[&instance.transmission.url])?,
+    );
     let url = instance.transmission.url.to_string();
     let basic_auth = BasicAuth {
         user: instance
@@ -113,6 +149,7 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                 .context("Deleting torrent metadata alone")?;
         }
     }
+    status.succeed();
     Ok(())
 }
 
