@@ -4,7 +4,9 @@ use gearbox_maintenance::{
     Torrent,
 };
 use log::{debug, info, warn};
-use std::{convert::TryFrom, path::PathBuf};
+use once_cell::sync::Lazy;
+use prometheus::{register_histogram_vec, HistogramVec};
+use std::{convert::TryFrom, net::SocketAddr, path::PathBuf, sync::Arc};
 use structopt::StructOpt;
 use tokio::{task, time};
 use transmission_rpc::{
@@ -17,9 +19,13 @@ struct Opt {
     /// The config file to load
     config: PathBuf,
 
-    /// Actually perform policy actions
     #[structopt(short = "f")]
+    /// Actually perform policy actions
     take_action: bool,
+
+    #[structopt(long)]
+    /// Serve prometheus metrics on this network address
+    prometheus_listen_addr: Option<SocketAddr>,
 }
 
 fn init_logging() {
@@ -27,7 +33,19 @@ fn init_logging() {
     env_logger::init_from_env(env);
 }
 
+static TICK_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
+    register_histogram_vec!(
+        "instance_fetch_duration_ms",
+        "Time it took gearbox-maintenance to fetch data from one transmission instance",
+        &["transmission_url"]
+    )
+    .unwrap()
+});
+
 async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> {
+    let _timer = TICK_DURATION
+        .get_metric_with_label_values(&[&instance.transmission.url])?
+        .start_timer();
     let url = instance.transmission.url.to_string();
     let basic_auth = BasicAuth {
         user: instance
@@ -103,7 +121,7 @@ async fn main() -> Result<()> {
     let opt = Opt::from_args();
 
     init_logging();
-    let handles: Vec<_> = Config::configure(&opt.config)?
+    let mut handles: Vec<_> = Config::configure(&opt.config)?
         .into_iter()
         .map(|instance| {
             info!(
@@ -125,8 +143,21 @@ async fn main() -> Result<()> {
             })
         })
         .collect();
+
+    if let Some(addr) = opt.prometheus_listen_addr {
+        let shutdown = futures::future::pending();
+        handles.push(task::spawn(async move {
+            prometheus_hyper::Server::run(
+                Arc::new(prometheus::default_registry().clone()),
+                addr,
+                shutdown,
+            )
+            .await
+        }));
+        info!("Serving prometheus metrics on http://{}/metrics", addr);
+    }
     for handle in handles {
-        handle.await?;
+        handle.await??;
     }
     Ok(())
 }
