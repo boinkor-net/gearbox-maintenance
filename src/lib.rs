@@ -73,6 +73,7 @@ pub struct Torrent {
     pub upload_ratio: f32,
     pub status: Status,
     pub num_files: usize,
+    pub total_size: usize,
     pub trackers: Vec<Url>,
 }
 
@@ -88,6 +89,7 @@ impl std::fmt::Debug for Torrent {
             .field("upload_ratio", &self.upload_ratio)
             .field("status", &self.status)
             .field("num_files", &self.num_files)
+            .field("total_size", &self.total_size)
             .field("trackers", &trackers)
             .finish()
     }
@@ -106,6 +108,7 @@ impl Torrent {
             Uploadratio,
             Donedate,
             Files,
+            Totalsize,
             Trackers,
         ])
     }
@@ -137,6 +140,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
             status: Status::try_from(ensure_field(t.status, "status")?)
                 .context("Parsing status")?,
             num_files: ensure_field(t.files, "files")?.len(),
+            total_size: ensure_field(t.total_size, "total_size")? as usize,
             trackers: ensure_field(t.trackers, "trackers")?
                 .into_iter()
                 .map(|t| Url::parse(&t.announce))

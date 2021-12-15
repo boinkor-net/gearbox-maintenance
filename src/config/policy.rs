@@ -284,6 +284,7 @@ mod test {
             upload_ratio,
             status: crate::Status::Seeding,
             num_files: 1,
+            total_size: 30000,
             trackers: vec![Url::parse("https://tracker:8080/announce").unwrap()],
         };
         assert_eq!(
@@ -318,6 +319,7 @@ mod test {
             upload_ratio: 2.0,
             status: crate::Status::Seeding,
             num_files,
+            total_size: 30000,
             trackers: vec![Url::parse("https://tracker:8080/announce").unwrap()],
         };
         assert_eq!(
