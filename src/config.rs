@@ -114,8 +114,13 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         .sanity_check()
     }
 
-    fn delete_policy(r#match: &Condition, delete_data: Option<bool>) -> DeletePolicy {
+    fn delete_policy(
+        name: Option<&str>,
+        r#match: &Condition,
+        delete_data: Option<bool>,
+    ) -> DeletePolicy {
         Ok(DeletePolicy {
+            name: name.map(|n| n.to_string()),
             match_when: r#match.clone(),
             delete_data: delete_data.unwrap_or(false),
         })

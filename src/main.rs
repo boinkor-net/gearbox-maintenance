@@ -1,11 +1,13 @@
+mod metrics;
+
+use metrics::*;
+
 use anyhow::{anyhow, Context, Result};
 use gearbox_maintenance::{
     config::{Config, Instance},
     Torrent,
 };
 use log::{debug, info, warn};
-use once_cell::sync::Lazy;
-use prometheus::{register_counter_vec, register_histogram_vec, CounterVec, HistogramVec};
 use std::{convert::TryFrom, net::SocketAddr, path::PathBuf, sync::Arc};
 use structopt::StructOpt;
 use tokio::{task, time};
@@ -31,48 +33,6 @@ struct Opt {
 fn init_logging() {
     let env = env_logger::Env::default().filter_or("RUST_LOG", "gearbox_maintenance=info");
     env_logger::init_from_env(env);
-}
-
-static TICK_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
-    register_histogram_vec!(
-        "instance_fetch_duration_ms",
-        "Time it took gearbox-maintenance to fetch data from one transmission instance",
-        &["transmission_url"]
-    )
-    .unwrap()
-});
-
-static TICK_FAILURES: Lazy<CounterVec> = Lazy::new(|| {
-    register_counter_vec!(
-        "instance_fetch_failure_count",
-        "Number of times that fetching from the instance failed",
-        &["transmission_url"]
-    )
-    .unwrap()
-});
-
-/// Adds a 1 to a `prometheus::core::GenericCounter` when it is dropped.
-struct FailureCounter<P: prometheus::core::Atomic>(prometheus::core::GenericCounter<P>, bool);
-
-impl<P: prometheus::core::Atomic> FailureCounter<P> {
-    /// Create a failure counter that increments a prometheus counter unless told not to.
-    fn new(counter: prometheus::core::GenericCounter<P>) -> Self {
-        Self(counter, true)
-    }
-
-    /// Declare the operation a success, and don't increment the failure counter.
-    fn succeed(self) {
-        let mut fc = self;
-        fc.1 = false;
-    }
-}
-
-impl<P: prometheus::core::Atomic> Drop for FailureCounter<P> {
-    fn drop(&mut self) {
-        if self.1 {
-            self.0.inc();
-        }
-    }
 }
 
 async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> {
@@ -109,8 +69,16 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     let mut delete_ids_with_data: Vec<Id> = Default::default();
     let mut delete_ids_without_data: Vec<Id> = Default::default();
     for torrent in all_torrents {
-        for policy in instance.policies.iter() {
+        for (index, policy) in instance.policies.iter().enumerate() {
             let is_match = policy.match_when.matches_torrent(&torrent);
+            if is_match.is_real_mismatch() {
+                TORRENT_SIZES
+                    .get_metric_with_label_values(&[
+                        &instance.transmission.url,
+                        policy.name_or_index(index).as_ref(),
+                    ])?
+                    .observe(torrent.total_size as f64);
+            }
             if is_match.is_match() {
                 if !take_action {
                     info!("Would delete {}: matches {}", torrent.name, is_match);

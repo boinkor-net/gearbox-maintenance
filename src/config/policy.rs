@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt};
+use std::{borrow::Cow, collections::HashSet, fmt};
 
 use chrono::{Duration, Utc};
 use enum_kinds::EnumKind;
@@ -214,6 +214,7 @@ impl<'v> StarlarkValue<'v> for Condition {
 /// Specifies a condition for torrents that can be deleted.
 #[derive(PartialEq, Clone)]
 pub struct DeletePolicy {
+    pub name: Option<String>,
     /// The condition under which to match
     pub match_when: Condition,
     pub delete_data: bool,
@@ -229,9 +230,18 @@ impl fmt::Display for DeletePolicy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "DeletePolicy:[{}, delete_data:{}]",
-            self.match_when, self.delete_data
+            "DeletePolicy:[{:?}, {}, delete_data:{}]",
+            self.name, self.match_when, self.delete_data
         )
+    }
+}
+
+impl DeletePolicy {
+    pub fn name_or_index(&self, index: usize) -> Cow<String> {
+        self.name
+            .as_ref()
+            .map(|n| Cow::Borrowed(n))
+            .unwrap_or_else(|| Cow::Owned(index.to_string()))
     }
 }
 
