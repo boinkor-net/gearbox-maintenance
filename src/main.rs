@@ -80,6 +80,12 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                     .observe(torrent.total_size as f64);
             }
             if is_match.is_match() {
+                TORRENT_DELETIONS
+                    .get_metric_with_label_values(&[
+                        &instance.transmission.url,
+                        policy.name_or_index(index).as_ref(),
+                    ])?
+                    .inc();
                 if !take_action {
                     info!("Would delete {}: matches {}", torrent.name, is_match);
                 } else {
