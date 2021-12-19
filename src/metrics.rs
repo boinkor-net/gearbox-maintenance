@@ -22,10 +22,10 @@ pub(crate) static TICK_FAILURES: Lazy<CounterVec> = Lazy::new(|| {
     .unwrap()
 });
 
-pub(crate) static TORRENT_SIZES: Lazy<HistogramVec> = Lazy::new(|| {
+pub(crate) static TORRENT_SIZE_HIST: Lazy<HistogramVec> = Lazy::new(|| {
     register_histogram_vec!(
-        "torrent_sizes_bytes",
-        "Histogram of torrent size. Use sum and count to see total size on a tracker, and count of torrents.",
+        "torrent_size_bytes_historam",
+        "Histogram of torrent size managed by policy.",
         &["transmission_url", "policy"],
         prometheus::exponential_buckets(0.5e9, 2.0, 11).unwrap() // 500MB, then up to 1 terabyte
     )
@@ -36,6 +36,15 @@ pub(crate) static TORRENT_COUNT: Lazy<GaugeVec> = Lazy::new(|| {
     register_gauge_vec!(
         "torrent_count",
         "Number of torrents, per tracker.",
+        &["transmission_url", "policy"],
+    )
+    .unwrap()
+});
+
+pub(crate) static TORRENT_SIZES: Lazy<GaugeVec> = Lazy::new(|| {
+    register_gauge_vec!(
+        "torrent_size_bytes",
+        "Data size of torrents in bytes, per tracker.",
         &["transmission_url", "policy"],
     )
     .unwrap()

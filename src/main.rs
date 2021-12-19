@@ -69,6 +69,7 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     let mut delete_ids_with_data: Vec<Id> = Default::default();
     let mut delete_ids_without_data: Vec<Id> = Default::default();
     let mut counts: HashMap<String, usize> = Default::default();
+    let mut sizes: HashMap<String, usize> = Default::default();
     for torrent in all_torrents {
         for (index, policy) in instance.policies.iter().enumerate() {
             let is_match = policy.match_when.matches_torrent(&torrent);
@@ -77,7 +78,11 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                     .entry(policy.name_or_index(index).into_owned())
                     .and_modify(|n| *n += 1)
                     .or_insert(1);
-                TORRENT_SIZES
+                sizes
+                    .entry(policy.name_or_index(index).into_owned())
+                    .and_modify(|n| *n += torrent.total_size)
+                    .or_insert(torrent.total_size);
+                TORRENT_SIZE_HIST
                     .get_metric_with_label_values(&[
                         &instance.transmission.url,
                         policy.name_or_index(index).as_ref(),
@@ -109,6 +114,12 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
             .get_metric_with_label_values(&[&instance.transmission.url, policy_name])?
             .set(*count as f64);
     }
+    for (policy_name, size) in sizes.iter() {
+        TORRENT_SIZES
+            .get_metric_with_label_values(&[&instance.transmission.url, policy_name])?
+            .set(*size as f64);
+    }
+
     if take_action {
         if !delete_ids_with_data.is_empty() {
             info!(
