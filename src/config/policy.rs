@@ -240,7 +240,7 @@ impl DeletePolicy {
     pub fn name_or_index(&self, index: usize) -> Cow<String> {
         self.name
             .as_ref()
-            .map(|n| Cow::Borrowed(n))
+            .map(Cow::Borrowed)
             .unwrap_or_else(|| Cow::Owned(index.to_string()))
     }
 }
