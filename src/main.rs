@@ -8,7 +8,7 @@ use gearbox_maintenance::{
     Torrent,
 };
 use log::{debug, info, warn};
-use std::{convert::TryFrom, net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, convert::TryFrom, net::SocketAddr, path::PathBuf, sync::Arc};
 use structopt::StructOpt;
 use tokio::{task, time};
 use transmission_rpc::{
@@ -68,10 +68,15 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
 
     let mut delete_ids_with_data: Vec<Id> = Default::default();
     let mut delete_ids_without_data: Vec<Id> = Default::default();
+    let mut counts: HashMap<String, usize> = Default::default();
     for torrent in all_torrents {
         for (index, policy) in instance.policies.iter().enumerate() {
             let is_match = policy.match_when.matches_torrent(&torrent);
             if is_match.is_real_mismatch() {
+                counts
+                    .entry(policy.name_or_index(index).into_owned())
+                    .and_modify(|n| *n += 1)
+                    .or_insert(1);
                 TORRENT_SIZES
                     .get_metric_with_label_values(&[
                         &instance.transmission.url,
@@ -98,6 +103,11 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                 }
             }
         }
+    }
+    for (policy_name, count) in counts.iter() {
+        TORRENT_COUNT
+            .get_metric_with_label_values(&[&instance.transmission.url, policy_name])?
+            .set(*count as f64);
     }
     if take_action {
         if !delete_ids_with_data.is_empty() {

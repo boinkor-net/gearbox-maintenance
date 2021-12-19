@@ -1,5 +1,8 @@
 use once_cell::sync::Lazy;
-use prometheus::{register_counter_vec, register_histogram_vec, CounterVec, HistogramVec};
+use prometheus::{
+    register_counter_vec, register_gauge_vec, register_histogram_vec, CounterVec, GaugeVec,
+    HistogramVec,
+};
 
 pub(crate) static TICK_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
     register_histogram_vec!(
@@ -25,6 +28,15 @@ pub(crate) static TORRENT_SIZES: Lazy<HistogramVec> = Lazy::new(|| {
         "Histogram of torrent size. Use sum and count to see total size on a tracker, and count of torrents.",
         &["transmission_url", "policy"],
         prometheus::exponential_buckets(0.5e9, 2.0, 11).unwrap() // 500MB, then up to 1 terabyte
+    )
+    .unwrap()
+});
+
+pub(crate) static TORRENT_COUNT: Lazy<GaugeVec> = Lazy::new(|| {
+    register_gauge_vec!(
+        "torrent_count",
+        "Number of torrents, per tracker.",
+        &["transmission_url", "policy"],
     )
     .unwrap()
 });
