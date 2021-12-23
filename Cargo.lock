@@ -1842,8 +1842,9 @@ dependencies = [
 
 [[package]]
 name = "transmission-rpc"
-version = "0.3.5"
-source = "git+git://github.com/antifuchs/transmission-rpc/?branch=done-date#413c99049004ff70c96af8af1d94b9a47aefdf19"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "044b318bbc5d8ebf2830610f4f0da4df2e20a70ff8b8cb53f00c335203211ed5"
 dependencies = [
  "dotenv",
  "enum-iterator",
