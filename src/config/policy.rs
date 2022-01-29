@@ -56,12 +56,13 @@ pub enum ConditionMatch {
 
 impl fmt::Display for ConditionMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use hhmmss::Hhmmss;
         use ConditionMatch::*;
         match self {
             PreconditionsMismatch => write!(f, "PreconditionsMismatch"),
             None => write!(f, "None"),
             Ratio(r) => write!(f, "Ratio({})", r),
-            SeedTime(d) => write!(f, "SeedTime({})", d),
+            SeedTime(d) => write!(f, "SeedTime({})", d.hhmmss()),
         }
     }
 }
@@ -141,7 +142,19 @@ impl Condition {
             (_, _) => {}
         }
 
+        if let Some(max_ratio) = self.max_ratio {
+            if t.upload_ratio as f64 >= max_ratio {
+                debug!("Torrent {:?} doesn't have good enough ratio yet", t);
+                return ConditionMatch::Ratio(t.upload_ratio as f64);
+            }
+        }
+
         if let Some(done_date) = t.done_date {
+            if done_date.timestamp() == 0 {
+                // Can never be a useful time
+                debug!("Unset 'done' time on {:?} - leaving it alone", t);
+                return ConditionMatch::None;
+            }
             let seed_time = Utc::now() - done_date;
             match (self.min_seeding_time, self.max_seeding_time) {
                 // Short-circuiting criteria:
@@ -160,13 +173,6 @@ impl Condition {
                     return ConditionMatch::None;
                 }
                 (_, _) => {}
-            }
-        }
-
-        if let Some(max_ratio) = self.max_ratio {
-            if t.upload_ratio as f64 >= max_ratio {
-                debug!("Torrent {:?} doesn't have good enough ratio yet", t);
-                return ConditionMatch::Ratio(t.upload_ratio as f64);
             }
         }
 
@@ -331,6 +337,41 @@ mod test {
             num_files,
             total_size: 30000,
             trackers: vec![Url::parse("https://tracker:8080/announce").unwrap()],
+        };
+        assert_eq!(
+            condition.matches_torrent(&t).failed_with_precondition(),
+            matches
+        );
+    }
+
+    #[test_case("http://example.com:8080/announce", false; "with tracker that matches")]
+    #[test_case(
+        "http://example-nomatch.com:8080/announce",
+        true;
+        "with tracker that does not matche"
+    )]
+    fn tracker_url(tracker: &str, matches: bool) {
+        let condition = Condition {
+            trackers: vec!["example.com".to_string()].into_iter().collect(),
+            max_ratio: Some(1.0),
+            min_seeding_time: Some(Duration::minutes(60)),
+            max_seeding_time: Some(Duration::days(2)),
+            min_file_count: Some(2),
+            max_file_count: Some(4),
+            ..Default::default()
+        };
+        let t = Torrent {
+            id: 1,
+            hash: "abcd".to_string(),
+            name: "testcase".to_string(),
+            done_date: Some(Utc::now() - Duration::days(12)),
+            error: crate::Error::Ok,
+            error_string: "".to_string(),
+            upload_ratio: 2.0,
+            status: crate::Status::Seeding,
+            num_files: 3,
+            total_size: 30000,
+            trackers: vec![Url::parse(tracker).unwrap()],
         };
         assert_eq!(
             condition.matches_torrent(&t).failed_with_precondition(),

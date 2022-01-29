@@ -74,21 +74,22 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
         for (index, policy) in instance.policies.iter().enumerate() {
             let is_match = policy.match_when.matches_torrent(&torrent);
             if is_match.is_real_mismatch() {
-                counts
-                    .entry(policy.name_or_index(index).into_owned())
-                    .and_modify(|n| *n += 1)
-                    .or_insert(1);
-                sizes
-                    .entry(policy.name_or_index(index).into_owned())
-                    .and_modify(|n| *n += torrent.total_size)
-                    .or_insert(torrent.total_size);
-                TORRENT_SIZE_HIST
-                    .get_metric_with_label_values(&[
-                        &instance.transmission.url,
-                        policy.name_or_index(index).as_ref(),
-                    ])?
-                    .observe(torrent.total_size as f64);
+                continue;
             }
+            counts
+                .entry(policy.name_or_index(index).into_owned())
+                .and_modify(|n| *n += 1)
+                .or_insert(1);
+            sizes
+                .entry(policy.name_or_index(index).into_owned())
+                .and_modify(|n| *n += torrent.total_size)
+                .or_insert(torrent.total_size);
+            TORRENT_SIZE_HIST
+                .get_metric_with_label_values(&[
+                    &instance.transmission.url,
+                    policy.name_or_index(index).as_ref(),
+                ])?
+                .observe(torrent.total_size as f64);
             if is_match.is_match() {
                 TORRENT_DELETIONS
                     .get_metric_with_label_values(&[
@@ -97,9 +98,19 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                     ])?
                     .inc();
                 if !take_action {
-                    info!("Would delete {}: matches {}", torrent.name, is_match);
+                    info!(
+                        "Would delete {}: matches {} on {}",
+                        torrent.name,
+                        is_match,
+                        policy.name_or_index(index),
+                    );
                 } else {
-                    info!("Will delete {}: matches {}", torrent.name, is_match);
+                    info!(
+                        "Will delete {}: matches {} on {}",
+                        torrent.name,
+                        is_match,
+                        policy.name_or_index(index)
+                    );
                 }
                 if policy.delete_data {
                     delete_ids_with_data.push(Id::Hash(torrent.hash.to_string()));
