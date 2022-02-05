@@ -142,14 +142,6 @@ impl Condition {
             }
             (_, _) => {}
         }
-
-        if let Some(max_ratio) = self.max_ratio {
-            if t.upload_ratio as f64 >= max_ratio {
-                debug!("Torrent {:?} doesn't have good enough ratio yet", t);
-                return ConditionMatch::Ratio(t.upload_ratio as f64);
-            }
-        }
-
         if let Some(done_date) = t.done_date {
             if done_date.timestamp() == 0 {
                 // Can never be a useful time
@@ -157,26 +149,30 @@ impl Condition {
                 return ConditionMatch::None;
             }
             let seed_time = Utc::now() - done_date;
-            match (self.min_seeding_time, self.max_seeding_time) {
-                // Short-circuiting criteria:
-                (Some(min), Some(max)) if min < seed_time && seed_time >= max => {
+
+            if let Some(min_seeding_time) = self.min_seeding_time {
+                if seed_time < min_seeding_time {
+                    debug!("Torrent {:?} doesn't meet the min seeding time reqs yet", t);
+                    return ConditionMatch::None;
+                }
+            }
+
+            if let Some(max_ratio) = self.max_ratio {
+                if t.upload_ratio as f64 >= max_ratio {
+                    debug!(
+                        "Torrent {:?} has a ratio that qualifies it for deletion'",
+                        t
+                    );
+                    return ConditionMatch::Ratio(t.upload_ratio as f64);
+                }
+            }
+            if let Some(max_seeding_time) = self.max_seeding_time {
+                if seed_time >= max_seeding_time {
                     debug!("Torrent {:?} matches seed time requirements", t);
                     return ConditionMatch::SeedTime(seed_time);
                 }
-                (None, Some(max)) if seed_time > max => {
-                    debug!("Torrent {:?} seeded longer than necessary", t);
-                    return ConditionMatch::SeedTime(seed_time);
-                }
-
-                // Exclusion criteria:
-                (Some(min), _) if seed_time < min => {
-                    debug!("Torrent {:?} doesn't yet meet min_seeding_time", t);
-                    return ConditionMatch::None;
-                }
-                (_, _) => {}
             }
         }
-
         ConditionMatch::None
     }
 }
@@ -270,7 +266,7 @@ mod test {
     #[test_case("6 hrs", 0.9, ConditionMatchKind::None; "medium and ratio not met")]
     // Any that are really old are fair game:
     #[test_case("12 days", 0.9, ConditionMatchKind::SeedTime; "when seeding long enough at unmet ratio")]
-    #[test_case("12 days", 1.5, ConditionMatchKind::SeedTime; "when seeding long enough at exceeded ratio")]
+    #[test_case("12 days", 1.5, ConditionMatchKind::Ratio; "when seeding long enough at exceeded ratio")]
     #[test_log::test]
     fn condition_seed_time(time: &str, upload_ratio: f32, matches: ConditionMatchKind) {
         let time = Duration::from_std(parse_duration::parse(time).unwrap()).unwrap();
