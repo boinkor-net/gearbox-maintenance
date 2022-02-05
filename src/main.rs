@@ -10,7 +10,8 @@ use gearbox_maintenance::{
 use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf, sync::Arc};
 use structopt::StructOpt;
 use tokio::{task, time};
-use tracing::{debug, info, warn};
+use tracing::{debug, info, metadata::LevelFilter, warn};
+use tracing_subscriber::EnvFilter;
 use transmission_rpc::{
     types::{BasicAuth, Id},
     TransClient,
@@ -31,9 +32,16 @@ struct Opt {
 }
 
 fn init_logging() {
+    let filter = EnvFilter::from_default_env()
+        .add_directive(LevelFilter::INFO.into())
+        .add_directive(
+            "transmission_rpc=warn"
+                .parse()
+                .expect("'filter out transmission-rpc"),
+        );
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_writer(io::stderr)
-        .with_env_filter("gearbox_maintenance=info")
+        .with_env_filter(filter)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
