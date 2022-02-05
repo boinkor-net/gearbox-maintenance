@@ -7,10 +7,10 @@ use gearbox_maintenance::{
     config::{Config, Instance},
     Torrent,
 };
-use log::{debug, info, warn};
-use std::{collections::HashMap, convert::TryFrom, net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf, sync::Arc};
 use structopt::StructOpt;
 use tokio::{task, time};
+use tracing::{debug, info, warn};
 use transmission_rpc::{
     types::{BasicAuth, Id},
     TransClient,
@@ -31,8 +31,11 @@ struct Opt {
 }
 
 fn init_logging() {
-    let env = env_logger::Env::default().filter_or("RUST_LOG", "gearbox_maintenance=info");
-    env_logger::init_from_env(env);
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_writer(io::stderr)
+        .with_env_filter("gearbox_maintenance=info")
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
 
 async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> {

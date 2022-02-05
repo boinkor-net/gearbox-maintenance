@@ -2,8 +2,8 @@ use std::{borrow::Cow, collections::HashSet, fmt};
 
 use chrono::{Duration, Utc};
 use enum_kinds::EnumKind;
-use log::debug;
 use starlark::{starlark_simple_value, starlark_type, values::StarlarkValue};
+use tracing::debug;
 use url::Url;
 
 use crate::Torrent;
@@ -97,6 +97,7 @@ impl Condition {
     }
 
     /// Returns true of the condition matches a given torrent.
+    #[tracing::instrument]
     pub fn matches_torrent(&self, t: &Torrent) -> ConditionMatch {
         if t.status != crate::Status::Seeding {
             debug!("Torrent {:?} is not seeding, bailing", t);
@@ -261,16 +262,6 @@ mod test {
     use super::*;
     use test_case::test_case;
 
-    fn init_logger() {
-        let _ = env_logger::builder()
-            // Include all events in tests
-            .filter_level(log::LevelFilter::max())
-            // Ensure events are captured by `cargo test`
-            .is_test(true)
-            // Ignore errors initializing the logger if tests race to configure it
-            .try_init();
-    }
-
     // Should never delete younglings:
     #[test_case("1 min", 0.0, ConditionMatchKind::None; "young torrent at unmet ratio")]
     #[test_case("1 min", 7.0, ConditionMatchKind::None; "young torrent at exceeded ratio")]
@@ -280,8 +271,8 @@ mod test {
     // Any that are really old are fair game:
     #[test_case("12 days", 0.9, ConditionMatchKind::SeedTime; "when seeding long enough at unmet ratio")]
     #[test_case("12 days", 1.5, ConditionMatchKind::SeedTime; "when seeding long enough at exceeded ratio")]
+    #[test_log::test]
     fn condition_seed_time(time: &str, upload_ratio: f32, matches: ConditionMatchKind) {
-        init_logger();
         let time = Duration::from_std(parse_duration::parse(time).unwrap()).unwrap();
         let condition = Condition {
             trackers: vec!["tracker".to_string()].into_iter().collect(),
@@ -314,8 +305,8 @@ mod test {
     #[test_case(3, false; "within range: 3")]
     #[test_case(4, false; "within range: 4")]
     #[test_case(5, true; "out of range: 5")]
+    #[test_log::test]
     fn condition_num_files(num_files: usize, matches: bool) {
-        init_logger();
         let condition = Condition {
             trackers: vec!["tracker".to_string()].into_iter().collect(),
             max_ratio: Some(1.0),
@@ -350,6 +341,7 @@ mod test {
         true;
         "with tracker that does not matche"
     )]
+    #[test_log::test]
     fn tracker_url(tracker: &str, matches: bool) {
         let condition = Condition {
             trackers: vec!["example.com".to_string()].into_iter().collect(),
