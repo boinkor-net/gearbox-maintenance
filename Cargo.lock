@@ -494,6 +494,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gazebo"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0ec1b1eec465846ba4588ba55f9ec71bd242d03d89e277e4212fe1ef14a409f"
+dependencies = [
+ "gazebo_derive 0.6.0",
+]
+
+[[package]]
 name = "gazebo_derive"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -516,6 +525,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "gazebo_derive"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6750ac81135725577ae8ccba8f7dcfc7b5065576f83d78a660b85f2447c431c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "gearbox-maintenance"
 version = "0.0.2-dev"
 dependencies = [
@@ -524,7 +544,7 @@ dependencies = [
  "enum-iterator",
  "enum-kinds",
  "futures",
- "gazebo 0.4.4",
+ "gazebo 0.6.0",
  "hhmmss",
  "once_cell",
  "parse_duration",
