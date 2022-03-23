@@ -58,6 +58,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94a45b455c14666b85fc40a019e8ab9eb75e3a124e05494f5397122bc9eb06e0"
 
 [[package]]
+name = "argfile"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f3a889586e8b0753fd320a319e713b8ef6a2693259604db10eca22bc92e8810"
+dependencies = [
+ "os_str_bytes",
+]
+
+[[package]]
 name = "ascii-canvas"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -355,6 +364,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "erased-serde"
+version = "0.3.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad132dd8d0d0b546348d7d86cb3191aad14b34e5f979781fc005c80d4ac67ffd"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "fixedbitset"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -477,15 +495,6 @@ dependencies = [
 
 [[package]]
 name = "gazebo"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d04aaea21e785604f0e979c9f8c1363c0da479a2ccfbc451febc990bbf5eb34f"
-dependencies = [
- "gazebo_derive 0.1.1",
-]
-
-[[package]]
-name = "gazebo"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f84359d27ce1edf87a8316fb50f2c2bb436a4cba14e4116c0a1ae3c4b461382"
@@ -494,10 +503,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "gazebo_derive"
-version = "0.1.1"
+name = "gazebo"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d67a8bf744290be7799e50aa9f9d50fa1b693fd7bc37daf7bca57d20988f2c63"
+checksum = "b0ec1b1eec465846ba4588ba55f9ec71bd242d03d89e277e4212fe1ef14a409f"
+dependencies = [
+ "gazebo_derive 0.6.0",
+]
+
+[[package]]
+name = "gazebo_derive"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5acbc546dfc8ade58e0acc5e6c7b918ed7956747a897fdca5b19f26c7fffbab1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -506,9 +524,9 @@ dependencies = [
 
 [[package]]
 name = "gazebo_derive"
-version = "0.4.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5acbc546dfc8ade58e0acc5e6c7b918ed7956747a897fdca5b19f26c7fffbab1"
+checksum = "b6750ac81135725577ae8ccba8f7dcfc7b5065576f83d78a660b85f2447c431c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1064,6 +1082,15 @@ name = "once_cell"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da32515d9f6e6e489d7bc9d84c71b060db7247dc035bbe44eac88cf87486d8d5"
+
+[[package]]
+name = "os_str_bytes"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e22443d1643a904602595ba1cd8f7d896afe56d26712531c5ff73a15b2fbf64"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "parking_lot"
@@ -1632,19 +1659,21 @@ dependencies = [
 
 [[package]]
 name = "starlark"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80312f7d70f03cde4505d7b2700da812056d8d3eebbf1689f76d16e16e8d1edb"
+checksum = "f590872e7787b9134ccd6e7b3dcda2dbcb2d306f2059dc84f2edc60275ceec69"
 dependencies = [
  "annotate-snippets",
  "anyhow",
+ "argfile",
  "bumpalo",
  "debugserver-types",
  "derivative",
  "derive_more",
  "either",
+ "erased-serde",
  "fnv",
- "gazebo 0.4.4",
+ "gazebo 0.6.0",
  "hashbrown",
  "indenter",
  "indexmap",
@@ -1674,11 +1703,11 @@ dependencies = [
 
 [[package]]
 name = "starlark_derive"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcc89ecc26b5695f64d0bffdf05d5020de7e06e355d9f51c939a1e4fdd5f5230"
+checksum = "e4781776dfd3f5778e34dd9f10017b59e986e9b7b14e7a8379e183832d67332c"
 dependencies = [
- "gazebo 0.2.2",
+ "gazebo 0.6.0",
  "proc-macro2",
  "quote",
  "syn",
