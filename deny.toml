@@ -2,7 +2,17 @@
 vulnerability = "deny"
 unmaintained = "warn"
 notice = "warn"
-ignore = []
+ignore = [
+    # chrono calls localtime_r, which can result in memory unsafety if another
+    # thread is simultaneously calling setenv. The likelihood of this happening
+    # here is pretty low, and in any case it's something I can't help at the moment. /:
+    "RUSTSEC-2020-0159",
+    # Same for all these other time and chrono bugs - they have a new
+    # maintainer, so these rustsec advisories should go away soon
+    "RUSTSEC-2020-0071", # segfault in time crate
+    "RUSTSEC-2021-0041", # parse_duration DoS with too-large exponent
+    "RUSTSEC-2020-0056", # stdweb crate is unmaintained (transitive thru time 0.2)
+]
 
 [licenses]
 unlicensed = "deny"
