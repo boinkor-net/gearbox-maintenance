@@ -607,6 +607,7 @@ dependencies = [
  "parse_duration",
  "prometheus",
  "prometheus-hyper",
+ "serde",
  "starlark",
  "structopt",
  "test-case",

@@ -2,6 +2,8 @@ use std::{borrow::Cow, collections::HashSet, fmt};
 
 use chrono::{Duration, Utc};
 use enum_kinds::EnumKind;
+use gazebo::any::AnyLifetime;
+use serde::Serialize;
 use starlark::{starlark_simple_value, starlark_type, values::StarlarkValue};
 use tracing::debug;
 use url::Url;
@@ -9,7 +11,7 @@ use url::Url;
 use crate::Torrent;
 
 /// Conditions for matching a torrent for a policy on a transmission instance.
-#[derive(PartialEq, Clone, Default)]
+#[derive(PartialEq, Clone, Default, Serialize, AnyLifetime)]
 pub struct Condition {
     /// The tracker URL hostnames (only the host, not the path or
     /// port) that the policy should apply to.
@@ -28,6 +30,7 @@ pub struct Condition {
     ///
     /// Even if the [`max_ratio`] requirement isn't met, the torrent
     /// won't be deleted unless it's been seeding this long.
+    #[serde(with = "parse_duration")]
     pub min_seeding_time: Option<Duration>,
 
     /// The ratio at which a torrent qualifies for deletion, even if
@@ -35,6 +38,7 @@ pub struct Condition {
     pub max_ratio: Option<f64>,
 
     /// The duration at which a torrent qualifies for deletion.
+    #[serde(with = "parse_duration")]
     pub max_seeding_time: Option<Duration>,
 }
 
@@ -215,7 +219,7 @@ impl<'v> StarlarkValue<'v> for Condition {
 }
 
 /// Specifies a condition for torrents that can be deleted.
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Serialize, AnyLifetime)]
 pub struct DeletePolicy {
     pub name: Option<String>,
     /// The condition under which to match

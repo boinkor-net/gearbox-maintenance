@@ -1,14 +1,17 @@
 use std::fmt;
 
 use chrono::Duration;
+use gazebo::any::AnyLifetime;
+use serde::Serialize;
 use starlark::{starlark_simple_value, starlark_type, values::StarlarkValue};
 
 /// A transmission instance
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, AnyLifetime)]
 pub struct Transmission {
     pub url: String,
     pub user: Option<String>,
     pub password: Option<String>,
+    #[serde(with = "parse_duration")]
     pub poll_interval: Duration,
 }
 
