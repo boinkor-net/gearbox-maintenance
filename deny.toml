@@ -18,15 +18,6 @@ ignore = [
 unlicensed = "deny"
 confidence-threshold = 0.65  # ring's license can't be recognized well
 allow = [
-    "Apache-2.0",
-    "Apache-2.0 WITH LLVM-exception",
-    "BSD-3-Clause",
-    "BSD-2-Clause",
-    "BSL-1.0",
-    "MIT",
-    "ISC",
-    "0BSD",
-    "CC0-1.0",
     "MPL-2.0",
 ]
 exceptions = [
@@ -40,7 +31,7 @@ copyleft = "warn"
 # * osi-only - The license will be approved if is OSI-approved *AND NOT* FSF/Free
 # * fsf-only - The license will be approved if is FSF/Free *AND NOT* OSI-approved
 # * neither - The license will be denied if is FSF/Free *OR* OSI-approved
-allow-osi-fsf-free = "neither"
+allow-osi-fsf-free = "either"
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected
