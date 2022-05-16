@@ -1,15 +1,19 @@
 use std::{borrow::Cow, collections::HashSet, fmt};
 
 use chrono::{Duration, Utc};
-use enum_kinds::EnumKind;
-use starlark::{starlark_simple_value, starlark_type, values::StarlarkValue};
+use gazebo::any::AnyLifetime;
+use serde::Serialize;
+use starlark::{
+    starlark_simple_value, starlark_type,
+    values::{NoSerialize, StarlarkValue},
+};
 use tracing::debug;
 use url::Url;
 
 use crate::Torrent;
 
 /// Conditions for matching a torrent for a policy on a transmission instance.
-#[derive(PartialEq, Clone, Default)]
+#[derive(PartialEq, Clone, Default, NoSerialize, AnyLifetime)]
 pub struct Condition {
     /// The tracker URL hostnames (only the host, not the path or
     /// port) that the policy should apply to.
@@ -38,21 +42,29 @@ pub struct Condition {
     pub max_seeding_time: Option<Duration>,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug, EnumKind)]
-#[enum_kind(ConditionMatchKind)]
-pub enum ConditionMatch {
-    /// Preconditions (not seeding, trackers, number of files) don't match.
-    PreconditionsMismatch,
+mod condition_match {
+    #![allow(clippy::extra_unused_lifetimes)]
 
-    /// Preconditions met, but did not match.
-    None,
+    use chrono::Duration;
+    use enum_kinds::EnumKind;
 
-    /// Matches based on ratio
-    Ratio(f64),
+    #[derive(PartialEq, Copy, Clone, Debug, EnumKind)]
+    #[enum_kind(ConditionMatchKind)]
+    pub enum ConditionMatch {
+        /// Preconditions (not seeding, trackers, number of files) don't match.
+        PreconditionsMismatch,
 
-    /// Matches based on seed time
-    SeedTime(Duration),
+        /// Preconditions met, but did not match.
+        None,
+
+        /// Matches based on ratio
+        Ratio(f64),
+
+        /// Matches based on seed time
+        SeedTime(Duration),
+    }
 }
+pub use condition_match::*;
 
 impl fmt::Display for ConditionMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -215,7 +227,7 @@ impl<'v> StarlarkValue<'v> for Condition {
 }
 
 /// Specifies a condition for torrents that can be deleted.
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Serialize, AnyLifetime)]
 pub struct DeletePolicy {
     pub name: Option<String>,
     /// The condition under which to match
