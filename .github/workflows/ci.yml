@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_toolchain: [nightly-2021-12-05, nightly]
+        rust_toolchain: [nightly-2022-05-15, nightly]
         cargo_args:
           - ""
     steps:
