@@ -1,7 +1,6 @@
 use std::{borrow::Cow, collections::HashSet, fmt};
 
 use chrono::{Duration, Utc};
-use enum_kinds::EnumKind;
 use gazebo::any::AnyLifetime;
 use serde::Serialize;
 use starlark::{
@@ -43,21 +42,29 @@ pub struct Condition {
     pub max_seeding_time: Option<Duration>,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug, EnumKind)]
-#[enum_kind(ConditionMatchKind)]
-pub enum ConditionMatch {
-    /// Preconditions (not seeding, trackers, number of files) don't match.
-    PreconditionsMismatch,
+mod condition_match {
+    #![allow(clippy::extra_unused_lifetimes)]
 
-    /// Preconditions met, but did not match.
-    None,
+    use chrono::Duration;
+    use enum_kinds::EnumKind;
 
-    /// Matches based on ratio
-    Ratio(f64),
+    #[derive(PartialEq, Copy, Clone, Debug, EnumKind)]
+    #[enum_kind(ConditionMatchKind)]
+    pub enum ConditionMatch {
+        /// Preconditions (not seeding, trackers, number of files) don't match.
+        PreconditionsMismatch,
 
-    /// Matches based on seed time
-    SeedTime(Duration),
+        /// Preconditions met, but did not match.
+        None,
+
+        /// Matches based on ratio
+        Ratio(f64),
+
+        /// Matches based on seed time
+        SeedTime(Duration),
+    }
 }
+pub use condition_match::*;
 
 impl fmt::Display for ConditionMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
