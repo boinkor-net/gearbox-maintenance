@@ -4,14 +4,17 @@ use chrono::{Duration, Utc};
 use enum_kinds::EnumKind;
 use gazebo::any::AnyLifetime;
 use serde::Serialize;
-use starlark::{starlark_simple_value, starlark_type, values::StarlarkValue};
+use starlark::{
+    starlark_simple_value, starlark_type,
+    values::{NoSerialize, StarlarkValue},
+};
 use tracing::debug;
 use url::Url;
 
 use crate::Torrent;
 
 /// Conditions for matching a torrent for a policy on a transmission instance.
-#[derive(PartialEq, Clone, Default, Serialize, AnyLifetime)]
+#[derive(PartialEq, Clone, Default, NoSerialize, AnyLifetime)]
 pub struct Condition {
     /// The tracker URL hostnames (only the host, not the path or
     /// port) that the policy should apply to.
@@ -30,7 +33,6 @@ pub struct Condition {
     ///
     /// Even if the [`max_ratio`] requirement isn't met, the torrent
     /// won't be deleted unless it's been seeding this long.
-    #[serde(with = "parse_duration")]
     pub min_seeding_time: Option<Duration>,
 
     /// The ratio at which a torrent qualifies for deletion, even if
@@ -38,7 +40,6 @@ pub struct Condition {
     pub max_ratio: Option<f64>,
 
     /// The duration at which a torrent qualifies for deletion.
-    #[serde(with = "parse_duration")]
     pub max_seeding_time: Option<Duration>,
 }
 

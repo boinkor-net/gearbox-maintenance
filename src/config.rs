@@ -67,7 +67,7 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         user: Option<&str>,
         password: Option<&str>,
         poll_interval: Option<&str>,
-    ) -> Transmission {
+    ) -> anyhow::Result<Transmission> {
         let poll_interval = if let Some(i) = poll_interval {
             Duration::from_std(parse_duration::parse(i)?)?
         } else {
@@ -88,7 +88,7 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         max_seeding_time: Option<&str>,
         min_seeding_time: Option<&str>,
         max_ratio: Option<StarlarkFloat>,
-    ) -> Condition {
+    ) -> anyhow::Result<Condition> {
         let max_seeding_time = if let Some(max_seeding_time) = max_seeding_time {
             Some(Duration::from_std(parse_duration::parse(
                 max_seeding_time,
@@ -118,7 +118,7 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         name: Option<&str>,
         r#match: &Condition,
         delete_data: Option<bool>,
-    ) -> DeletePolicy {
+    ) -> anyhow::Result<DeletePolicy> {
         Ok(DeletePolicy {
             name: name.map(|n| n.to_string()),
             match_when: r#match.clone(),
@@ -126,7 +126,10 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         })
     }
 
-    fn register_policy(transmission: &Transmission, policies: Vec<&DeletePolicy>) -> NoneType {
+    fn register_policy(
+        transmission: &Transmission,
+        policies: Vec<&DeletePolicy>,
+    ) -> anyhow::Result<NoneType> {
         let store = eval.extra.unwrap().downcast_ref::<Config>().unwrap();
         store.0.borrow_mut().push(Instance {
             transmission: transmission.clone(),
