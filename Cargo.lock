@@ -347,11 +347,11 @@ dependencies = [
 
 [[package]]
 name = "enum-iterator"
-version = "0.8.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2953d1df47ac0eb70086ccabf0275aa8da8591a28bd358ee2b52bd9f9e3ff9e9"
+checksum = "f992cb5d96421bd97bf8dd4f91bb73b42c8c06468562f9a3d5469656a6c51b61"
 dependencies = [
- "enum-iterator-derive 0.8.1",
+ "enum-iterator-derive 1.0.0",
 ]
 
 [[package]]
@@ -367,9 +367,9 @@ dependencies = [
 
 [[package]]
 name = "enum-iterator-derive"
-version = "0.8.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8958699f9359f0b04e691a13850d48b7de329138023876d07cbd024c2c820598"
+checksum = "3a375a452d20c4dbbaa397e84cdfaa2712b4b3d22bf49426e9c8725d10fef005"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -618,7 +618,7 @@ version = "0.0.2-dev"
 dependencies = [
  "anyhow",
  "chrono",
- "enum-iterator 0.8.1",
+ "enum-iterator 1.0.0",
  "enum-kinds",
  "futures",
  "gazebo 0.7.0",
