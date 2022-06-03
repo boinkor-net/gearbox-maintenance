@@ -583,11 +583,11 @@ dependencies = [
 
 [[package]]
 name = "gazebo"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26aeb39c500dcf094f9e9aec0e6cb2cc39211d25b00a9362afbb898310b9a614"
+checksum = "ad3eb4a8dada416133e5f119b2b7182db77cf9b9fa1f55c62dc129a4a313124b"
 dependencies = [
- "gazebo_derive 0.7.0",
+ "gazebo_derive 0.7.1",
 ]
 
 [[package]]
@@ -603,9 +603,9 @@ dependencies = [
 
 [[package]]
 name = "gazebo_derive"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9711288550f489601e0e42900d7de02a51bc0849f66ff11f4dd9bb25fcc61205"
+checksum = "bc4bd16780a4b83c579cf2a0b34eaed22ab9e75551bffe27a8dea4b13b1498b1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -621,7 +621,7 @@ dependencies = [
  "enum-iterator 0.8.1",
  "enum-kinds",
  "futures",
- "gazebo 0.7.0",
+ "gazebo 0.7.1",
  "hhmmss",
  "once_cell",
  "parse_duration",
@@ -1784,7 +1784,7 @@ dependencies = [
  "erased-serde",
  "fancy-regex",
  "fnv",
- "gazebo 0.7.0",
+ "gazebo 0.7.1",
  "hashbrown",
  "indenter",
  "indexmap",
