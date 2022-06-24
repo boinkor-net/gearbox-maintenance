@@ -4,12 +4,12 @@ use anyhow::{anyhow, Context};
 use std::convert::TryFrom;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use enum_iterator::IntoEnumIterator;
+use enum_iterator::{self, Sequence};
 use transmission_rpc::types::TorrentGetField;
 use url::Url;
 
 /// Status of a torrent in transmission, from the RPC
-#[derive(IntoEnumIterator, PartialEq, Debug, Clone, Copy)]
+#[derive(Sequence, PartialEq, Debug, Clone, Copy)]
 pub enum Status {
     Stopped = 0,
     QueuedToCheckFiles = 1,
@@ -24,8 +24,8 @@ impl TryFrom<i64> for Status {
     type Error = anyhow::Error;
 
     fn try_from(value: i64) -> Result<Self, Self::Error> {
-        if value >= 0 && value <= (Status::into_enum_iter().last().unwrap() as i64) {
-            Status::into_enum_iter()
+        if value >= 0 && value <= (enum_iterator::last::<Status>().unwrap() as i64) {
+            enum_iterator::all::<Status>()
                 .nth(value as usize)
                 .ok_or_else(|| anyhow!(format!("{}", value)))
         } else {
@@ -35,7 +35,7 @@ impl TryFrom<i64> for Status {
 }
 
 /// What is this torrent doing right now?
-#[derive(IntoEnumIterator, PartialEq, Debug, Clone)]
+#[derive(Sequence, PartialEq, Debug, Clone)]
 pub enum Error {
     /// everything's fine
     Ok = 0,
@@ -51,8 +51,8 @@ impl TryFrom<i64> for Error {
     type Error = anyhow::Error;
 
     fn try_from(value: i64) -> Result<Self, Self::Error> {
-        if value >= 0 && value <= (Error::into_enum_iter().last().unwrap() as i64) {
-            Error::into_enum_iter()
+        if value >= 0 && value <= (enum_iterator::last::<Error>().unwrap() as i64) {
+            enum_iterator::all::<Error>()
                 .nth(value as usize)
                 .ok_or_else(|| anyhow!(format!("{}", value)))
         } else {
