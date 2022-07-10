@@ -29,7 +29,7 @@ enum-kinds = "0.5.1"
 prometheus = "0.13.1"
 prometheus-hyper = "0.1"
 futures = "0.3.21"
-once_cell = "1.12.0"
+once_cell = "1.13.0"
 hhmmss = "0.1.0"
 serde = "*"
 
