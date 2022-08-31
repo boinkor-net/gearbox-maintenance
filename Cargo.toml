@@ -17,7 +17,7 @@ transmission-rpc = "0.3.6"
 tokio = { version = "1.20.1", features = ["full"] }
 tracing = "0.1.35"
 tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
-anyhow = "1.0.58"
+anyhow = "1.0.63"
 chrono = "0.4.19"
 url = "2.2.2"
 enum-iterator = "1.1.3"
