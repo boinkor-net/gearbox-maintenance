@@ -4,7 +4,7 @@ use metrics::*;
 
 use anyhow::{anyhow, Context, Result};
 use gearbox_maintenance::{
-    config::{Config, Instance},
+    config::{Instance, StarlarkConfig},
     Torrent,
 };
 use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf, sync::Arc};
@@ -175,7 +175,7 @@ async fn main() -> Result<()> {
     let opt = Opt::from_args();
 
     init_logging();
-    let mut handles: Vec<_> = Config::configure(&opt.config)?
+    let mut handles: Vec<_> = StarlarkConfig::configure(&opt.config)?
         .into_iter()
         .map(|instance| {
             info!(

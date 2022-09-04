@@ -21,11 +21,11 @@ use self::policy::Condition;
 
 /// Configuration for an instance of this program.
 #[derive(Debug, AnyLifetime, Default)]
-pub struct Config(RefCell<Vec<Instance>>);
+pub struct StarlarkConfig(RefCell<Vec<Instance>>);
 
-impl Config {
+impl StarlarkConfig {
     pub fn configure<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<Instance>> {
-        let mut c = Config::default();
+        let mut c = StarlarkConfig::default();
         c.eval(path.as_ref())?;
         Ok(c.0.into_inner())
     }
@@ -71,7 +71,7 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         let poll_interval = if let Some(i) = poll_interval {
             Duration::from_std(parse_duration::parse(i)?)?
         } else {
-            Duration::minutes(5)
+            Duration::minutes(transmission::DEFAULT_POLL_INTERVAL_MINS)
         };
         Ok(Transmission {
             url: url.to_string(),
@@ -130,7 +130,11 @@ fn transmission_config(builder: &mut GlobalsBuilder) {
         transmission: &Transmission,
         policies: Vec<&DeletePolicy>,
     ) -> anyhow::Result<NoneType> {
-        let store = eval.extra.unwrap().downcast_ref::<Config>().unwrap();
+        let store = eval
+            .extra
+            .unwrap()
+            .downcast_ref::<StarlarkConfig>()
+            .unwrap();
         store.0.borrow_mut().push(Instance {
             transmission: transmission.clone(),
             policies: policies.into_iter().cloned().collect(),
