@@ -37,7 +37,7 @@ pub fn configure(file: &Path) -> Result<Vec<Instance>, Box<EvalAltResult>> {
     Dynamic::from(
         engine
             .eval_file::<Array>(file.to_owned())
-            .map_err(|e| format!("Could not eval: {e}"))?,
+            .map_err(|e| format!("Could not eval config {:?}: {e}", file))?,
     )
     .into_typed_array()
     .map_err(|e| e.to_string().into())
