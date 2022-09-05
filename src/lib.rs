@@ -10,7 +10,7 @@ use transmission_rpc::types::TorrentGetField;
 use url::Url;
 
 /// Status of a torrent in transmission, from the RPC
-#[derive(Sequence, PartialEq, Debug, Clone, Copy)]
+#[derive(Sequence, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Status {
     Stopped = 0,
     QueuedToCheckFiles = 1,
@@ -36,7 +36,7 @@ impl TryFrom<i64> for Status {
 }
 
 /// What is this torrent doing right now?
-#[derive(Sequence, PartialEq, Debug, Clone)]
+#[derive(Sequence, PartialEq, Eq, Debug, Clone)]
 pub enum Error {
     /// everything's fine
     Ok = 0,

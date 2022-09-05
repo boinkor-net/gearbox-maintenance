@@ -40,7 +40,7 @@ pub fn configure(file: &Path) -> Result<Vec<Instance>, Box<EvalAltResult>> {
             .map_err(|e| format!("Could not eval: {e}"))?,
     )
     .into_typed_array()
-    .map_err(|e| format!("{e}").into())
+    .map_err(|e| e.to_string().into())
 }
 
 pub fn construct_transmission(d: &Dynamic) -> Result<Transmission, Box<EvalAltResult>> {
@@ -85,7 +85,7 @@ impl Instance {
             transmission,
             policies: Dynamic::from(policies)
                 .into_typed_array()
-                .map_err(|e| format!("{e}"))?,
+                .map_err(|e| e.to_string())?,
         })
     }
 }

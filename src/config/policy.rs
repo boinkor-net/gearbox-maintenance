@@ -159,7 +159,7 @@ impl Condition {
         .iter()
         .all(Option::is_none)
         {
-            Err(format!("Set at least one of min_seeding_time, max_seeding_time, max_ratio - otherwise this deletes all torrents matching the tracker immediately."))?;
+            Err("Set at least one of min_seeding_time, max_seeding_time, max_ratio - otherwise this deletes all torrents matching the tracker immediately.".to_string())?;
         }
         Ok(self)
     }
