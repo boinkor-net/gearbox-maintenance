@@ -24,53 +24,53 @@ other torrent client).
 
 ## Installation
 
-As some deps require nightly rust, you have to build this project with
-a nightly compiler:
-
 ```sh
-rustup install nightly-2021-12-05
-cargo +nightly-2021-12-05 install --git git://github.com/antifuchs/gearbox-maintenance gearbox-maintenance
+cargo --git git://github.com/antifuchs/gearbox-maintenance gearbox-maintenance
 ```
 
 ## Configuration
 
-The configuration language is
-[Starlark](https://github.com/bazelbuild/starlark), a dialect of
-python that is geared towards configuration files.
+The configuration language is [Rhai](https://rhai.rs/book/), a
+scripting language that works pretty well for configuration files.
 
 Here's an example config file:
 
 ```py
-register_policy(
-    transmission=transmission("http://localhost:9091/transmission/rpc", user="transmission", password="secret"),
-    policies=[
-        delete_policy(
-            match=match(
-                trackers=["tracker-hostname.horse"], # Only match if torrent is tracked on any of these hostnames
-
-                min_file_count=2  # match only torrents that have >=2 files in them
-
-                # Delete any matching torrent if it is >12h old, and has a ratio of 1.4 or more:
-                max_ratio=1.4,
-                min_seeding_time="12 hours",
-
-                # Or delete any matching torrent if it's being seeded longer than a year:
-                max_seeding_time="365 days",
-            ),
-            delete_data=True,  # "Delete and trash local data"
-        ),
-        # You can define more conditions here
-    ],
-)
+[
+  rules(
+      transmission("http://localhost:9091/transmission/rpc")
+        .user("transmission")
+        .password("secret")
+        .poll_interval("20min"),
+      [
+          delete_policy("horse_seasons",
+                        matching(["tracker-hostname.horse"])
+                          .min_file_count(2)
+                          .max_ratio(2.3)
+                          .min_seeding_time("2 days")
+                          .min_seeding_time("14 days")),
+          delete_policy("horse_episodes",
+                        matching(["tracker-hostname.horse"])
+                          .max_file_count(1)
+                          .max_ratio(2.3)
+                          .min_seeding_time("24 hours")
+                          .max_seeding_time("3 days"))
+      ],
+  )
+]
 ```
+
+You can also use rhai's [module
+system](https://rhai.rs/book/language/modules/import.html) to import
+files in the same directory.
 
 ## Invocation
 
 By default, this tool takes no action: `gearbox-maintenance
-config.star` will connect to the transmission instances you specify,
+config.rhai` will connect to the transmission instances you specify,
 and log what actions it would take.
 
-To have it actually delete data, run `gearbox-maintenance -f config.star`.
+To have it actually delete data, run `gearbox-maintenance -f config.rhai`.
 
 The default log level is `gearbox-maintenance=info`. You can increase
 logging intensity by setting the environment variable
