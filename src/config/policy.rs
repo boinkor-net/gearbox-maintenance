@@ -1,19 +1,16 @@
 use std::{borrow::Cow, collections::HashSet, fmt};
 
+use crate::util::chrono_optional_duration;
 use chrono::{Duration, Utc};
-use gazebo::any::AnyLifetime;
-use serde::Serialize;
-use starlark::{
-    starlark_simple_value, starlark_type,
-    values::{NoSerialize, StarlarkValue},
-};
+use rhai::{Array, Dynamic, EvalAltResult};
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 use url::Url;
 
 use crate::Torrent;
 
 /// Conditions for matching a torrent for a policy on a transmission instance.
-#[derive(PartialEq, Clone, Default, NoSerialize, AnyLifetime)]
+#[derive(PartialEq, Clone, Default, Serialize, Deserialize)]
 pub struct Condition {
     /// The tracker URL hostnames (only the host, not the path or
     /// port) that the policy should apply to.
@@ -21,17 +18,18 @@ pub struct Condition {
 
     /// The number of files that must be present in a torrent for the
     /// policy to match. If None, any number of files matches.
-    pub min_file_count: Option<i32>,
+    pub min_file_count: Option<i64>,
 
     /// The maximum number of files that may be present in a torrent
     /// for the policy to match. If None, any number of files matches.
-    pub max_file_count: Option<i32>,
+    pub max_file_count: Option<i64>,
 
     /// The minimum amount of time that a torrent must have been
     /// seeding for, to qualify for deletion.
     ///
     /// Even if the [`max_ratio`] requirement isn't met, the torrent
     /// won't be deleted unless it's been seeding this long.
+    #[serde(with = "chrono_optional_duration")]
     pub min_seeding_time: Option<Duration>,
 
     /// The ratio at which a torrent qualifies for deletion, even if
@@ -39,7 +37,65 @@ pub struct Condition {
     pub max_ratio: Option<f64>,
 
     /// The duration at which a torrent qualifies for deletion.
+    #[serde(with = "chrono_optional_duration")]
     pub max_seeding_time: Option<Duration>,
+}
+
+impl Condition {
+    pub fn new(trackers: Array) -> Result<Self, Box<EvalAltResult>> {
+        let trackers: Vec<String> = Dynamic::from(trackers).into_typed_array()?;
+        Ok(Condition {
+            trackers: trackers.into_iter().collect(),
+            ..Default::default()
+        })
+    }
+
+    pub fn with_min_seeding_time(self, min_seeding_time: &str) -> Result<Self, Box<EvalAltResult>> {
+        let min_seeding_time = Some(
+            Duration::from_std(
+                parse_duration::parse(min_seeding_time).map_err(|e| format!("{e}"))?,
+            )
+            .map_err(|e| format!("{e}"))?,
+        );
+        Ok(Self {
+            min_seeding_time,
+            ..self
+        })
+    }
+
+    pub fn with_max_seeding_time(self, max_seeding_time: &str) -> Result<Self, Box<EvalAltResult>> {
+        let max_seeding_time = Some(
+            Duration::from_std(
+                parse_duration::parse(max_seeding_time).map_err(|e| format!("{e}"))?,
+            )
+            .map_err(|e| format!("{e}"))?,
+        );
+        Ok(Self {
+            max_seeding_time,
+            ..self
+        })
+    }
+
+    pub fn with_max_ratio(self, max_ratio: f64) -> Self {
+        Self {
+            max_ratio: Some(max_ratio),
+            ..self
+        }
+    }
+
+    pub fn with_min_file_count(self, min_file_count: i64) -> Self {
+        Self {
+            min_file_count: Some(min_file_count),
+            ..self
+        }
+    }
+
+    pub fn with_max_file_count(self, max_file_count: i64) -> Self {
+        Self {
+            max_file_count: Some(max_file_count),
+            ..self
+        }
+    }
 }
 
 mod condition_match {
@@ -94,7 +150,7 @@ impl ConditionMatch {
 }
 
 impl Condition {
-    pub fn sanity_check(self) -> anyhow::Result<Self> {
+    pub fn sanity_check(self) -> Result<Self, Box<EvalAltResult>> {
         if vec![
             self.min_seeding_time.map(|_| true),
             self.max_ratio.map(|_| true),
@@ -103,7 +159,7 @@ impl Condition {
         .iter()
         .all(Option::is_none)
         {
-            anyhow::bail!("Set at least one of min_seeding_time, max_seeding_time, max_ratio - otherwise this deletes all a tracker's torrents immediately.");
+            Err(format!("Set at least one of min_seeding_time, max_seeding_time, max_ratio - otherwise this deletes all torrents matching the tracker immediately."))?;
         }
         Ok(self)
     }
@@ -129,7 +185,7 @@ impl Condition {
             return ConditionMatch::PreconditionsMismatch;
         }
 
-        let file_count = t.num_files as i32;
+        let file_count = t.num_files as i64;
         match (self.min_file_count, self.max_file_count) {
             (Some(min), Some(max)) if file_count < min || file_count > max => {
                 debug!(
@@ -221,16 +277,12 @@ impl fmt::Display for Condition {
     }
 }
 
-starlark_simple_value!(Condition);
-impl<'v> StarlarkValue<'v> for Condition {
-    starlark_type!("condition");
-}
-
 /// Specifies a condition for torrents that can be deleted.
-#[derive(PartialEq, Clone, Serialize, AnyLifetime)]
+#[derive(PartialEq, Clone, Serialize, Deserialize)]
 pub struct DeletePolicy {
     pub name: Option<String>,
     /// The condition under which to match
+    #[serde(rename = "match")]
     pub match_when: Condition,
     pub delete_data: bool,
 }
@@ -258,11 +310,6 @@ impl DeletePolicy {
             .map(Cow::Borrowed)
             .unwrap_or_else(|| Cow::Owned(index.to_string()))
     }
-}
-
-starlark_simple_value!(DeletePolicy);
-impl<'v> StarlarkValue<'v> for DeletePolicy {
-    starlark_type!("delete_policy");
 }
 
 #[cfg(test)]

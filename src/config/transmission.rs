@@ -1,21 +1,48 @@
 use std::fmt;
 
+use crate::util::chrono_duration;
 use chrono::Duration;
-use gazebo::any::AnyLifetime;
-use starlark::{
-    starlark_simple_value, starlark_type,
-    values::{NoSerialize, StarlarkValue},
-};
+use rhai::EvalAltResult;
+use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_POLL_INTERVAL_MINS: i64 = 5;
 
 /// A transmission instance
-#[derive(Clone, PartialEq, Eq, NoSerialize, AnyLifetime)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Transmission {
     pub url: String,
     pub user: Option<String>,
     pub password: Option<String>,
+    #[serde(with = "chrono_duration")]
     pub poll_interval: Duration,
+}
+
+impl Transmission {
+    pub fn new(url: &str) -> Self {
+        Self {
+            url: url.to_string(),
+            user: None,
+            password: None,
+            poll_interval: Duration::minutes(DEFAULT_POLL_INTERVAL_MINS),
+        }
+    }
+
+    pub fn with_user(mut self, user: &str) -> Self {
+        self.user = Some(user.to_string());
+        self
+    }
+
+    pub fn with_password(mut self, password: &str) -> Self {
+        self.password = Some(password.to_string());
+        self
+    }
+
+    pub fn with_poll_interval(mut self, interval: &str) -> Result<Self, Box<EvalAltResult>> {
+        self.poll_interval =
+            Duration::from_std(parse_duration::parse(interval).map_err(|e| format!("{e}"))?)
+                .map_err(|e| format!("{e}"))?;
+        Ok(self)
+    }
 }
 
 impl fmt::Debug for Transmission {
@@ -31,43 +58,5 @@ impl fmt::Display for Transmission {
             (Some(user), None) => write!(f, "{} # u:{}", self.url, user),
             (None, _) => write!(f, "{}", self.url),
         }
-    }
-}
-
-starlark_simple_value!(Transmission);
-impl<'v> StarlarkValue<'v> for Transmission {
-    starlark_type!("transmission");
-}
-
-use rhai::plugin::*;
-
-#[export_module]
-mod rhai_transmission {
-    #[rhai_fn(global)]
-    pub fn transmission(url: &str) -> Transmission {
-        Transmission {
-            url: url.to_string(),
-            user: None,
-            password: None,
-            poll_interval: Duration::minutes(DEFAULT_POLL_INTERVAL_MINS),
-        }
-    }
-
-    pub fn with_user(mut transmission: Transmission, user: &str) -> Transmission {
-        transmission.user = Some(user.to_string());
-        transmission
-    }
-
-    pub fn with_password(mut transmission: Transmission, password: &str) -> Transmission {
-        transmission.password = Some(password.to_string());
-        transmission
-    }
-
-    pub fn with_poll_interval_minutes(
-        mut transmission: Transmission,
-        minutes: i64,
-    ) -> Transmission {
-        transmission.poll_interval = Duration::minutes(minutes);
-        transmission
     }
 }

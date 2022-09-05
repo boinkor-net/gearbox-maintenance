@@ -1,150 +1,91 @@
 pub mod policy;
 mod transmission;
 
-use std::cell::RefCell;
-use std::path::{Path, PathBuf};
-
-use anyhow::Context;
-use chrono::Duration;
-use starlark::environment::{FrozenModule, GlobalsBuilder, Module};
-use starlark::eval::{Evaluator, ReturnFileLoader};
-use starlark::starlark_module;
-use starlark::syntax::{AstModule, Dialect};
-use starlark::values::float::StarlarkFloat;
-use starlark::values::none::NoneType;
-use starlark::values::{AnyLifetime, Value};
-
+use self::policy::Condition;
 use crate::config::policy::DeletePolicy;
 use crate::config::transmission::Transmission;
+use rhai::{module_resolvers::FileModuleResolver, Array};
+use rhai::{serde::from_dynamic, Dynamic, Engine, EvalAltResult};
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
-use self::policy::Condition;
+pub fn configure(file: &Path) -> Result<Vec<Instance>, Box<EvalAltResult>> {
+    let mut engine = Engine::new();
+    let resolver = FileModuleResolver::new_with_path(file.parent().unwrap_or(&PathBuf::from(".")));
+    engine.set_module_resolver(resolver);
+    engine
+        // Transmission type:
+        .register_type_with_name::<Transmission>("Transmission")
+        .register_fn("transmission", Transmission::new)
+        .register_fn("user", Transmission::with_user)
+        .register_fn("password", Transmission::with_password)
+        .register_result_fn("poll_interval", Transmission::with_poll_interval)
+        // Instance type:
+        .register_type_with_name::<Instance>("Instance")
+        .register_result_fn("rules", Instance::new)
+        // Policies
+        .register_result_fn("noop_delete_policy", construct_noop_delete_policy)
+        .register_result_fn("delete_policy", construct_real_delete_policy)
+        // Conditions
+        .register_result_fn("matching", Condition::new)
+        .register_fn("max_ratio", Condition::with_max_ratio)
+        .register_fn("min_file_count", Condition::with_min_file_count)
+        .register_fn("max_file_count", Condition::with_max_file_count)
+        .register_result_fn("min_seeding_time", Condition::with_min_seeding_time)
+        .register_result_fn("max_seeding_time", Condition::with_max_seeding_time);
 
-/// Configuration for an instance of this program.
-#[derive(Debug, AnyLifetime, Default)]
-pub struct StarlarkConfig(RefCell<Vec<Instance>>);
-
-impl StarlarkConfig {
-    pub fn configure<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<Instance>> {
-        let mut c = StarlarkConfig::default();
-        c.eval(path.as_ref())?;
-        Ok(c.0.into_inner())
-    }
-
-    fn eval(&mut self, path: &Path) -> anyhow::Result<FrozenModule> {
-        let ast = AstModule::parse_file(path, &Dialect::Standard)
-            .with_context(|| format!("loading {:?}", &path))?;
-        let loads: Vec<(String, FrozenModule)> = ast
-            .loads()
-            .into_iter()
-            .map(|load| {
-                let path = PathBuf::from(load);
-                Ok((
-                    load.to_owned(),
-                    self.eval(&path)
-                        .with_context(|| format!("loading {:?}", &path))?,
-                ))
-            })
-            .collect::<Result<_, anyhow::Error>>()?;
-        let modules = loads.iter().map(|(a, b)| (a.as_str(), b)).collect();
-        let globals = GlobalsBuilder::new().with(transmission_config).build();
-        let module = Module::new();
-        module.set("True", Value::new_bool(true));
-        module.set("False", Value::new_bool(false));
-
-        let mut eval = Evaluator::new(&module);
-        let loader = ReturnFileLoader { modules: &modules };
-        eval.set_loader(&loader);
-        eval.extra = Some(self); // TODO: get rid of extra
-        eval.eval_module(ast, &globals)?;
-        module.freeze()
-    }
+    Dynamic::from(
+        engine
+            .eval_file::<Array>(file.to_owned())
+            .map_err(|e| format!("Could not eval: {e}"))?,
+    )
+    .into_typed_array()
+    .map_err(|e| format!("{e}").into())
 }
 
-#[starlark_module]
-fn transmission_config(builder: &mut GlobalsBuilder) {
-    fn transmission(
-        url: &str,
-        user: Option<&str>,
-        password: Option<&str>,
-        poll_interval: Option<&str>,
-    ) -> anyhow::Result<Transmission> {
-        let poll_interval = if let Some(i) = poll_interval {
-            Duration::from_std(parse_duration::parse(i)?)?
-        } else {
-            Duration::minutes(transmission::DEFAULT_POLL_INTERVAL_MINS)
-        };
-        Ok(Transmission {
-            url: url.to_string(),
-            user: user.map(|p| p.to_string()),
-            password: password.map(|p| p.to_string()),
-            poll_interval,
-        })
-    }
-
-    fn r#match(
-        trackers: Vec<&str>,
-        min_file_count: Option<i32>,
-        max_file_count: Option<i32>,
-        max_seeding_time: Option<&str>,
-        min_seeding_time: Option<&str>,
-        max_ratio: Option<StarlarkFloat>,
-    ) -> anyhow::Result<Condition> {
-        let max_seeding_time = if let Some(max_seeding_time) = max_seeding_time {
-            Some(Duration::from_std(parse_duration::parse(
-                max_seeding_time,
-            )?)?)
-        } else {
-            None
-        };
-        let min_seeding_time = if let Some(min_seeding_time) = min_seeding_time {
-            Some(Duration::from_std(parse_duration::parse(
-                min_seeding_time,
-            )?)?)
-        } else {
-            None
-        };
-        Condition {
-            trackers: trackers.into_iter().map(String::from).collect(),
-            min_file_count,
-            max_file_count,
-            min_seeding_time,
-            max_ratio: max_ratio.map(|f| f.0),
-            max_seeding_time,
-        }
-        .sanity_check()
-    }
-
-    fn delete_policy(
-        name: Option<&str>,
-        r#match: &Condition,
-        delete_data: Option<bool>,
-    ) -> anyhow::Result<DeletePolicy> {
-        Ok(DeletePolicy {
-            name: name.map(|n| n.to_string()),
-            match_when: r#match.clone(),
-            delete_data: delete_data.unwrap_or(false),
-        })
-    }
-
-    fn register_policy(
-        transmission: &Transmission,
-        policies: Vec<&DeletePolicy>,
-    ) -> anyhow::Result<NoneType> {
-        let store = eval
-            .extra
-            .unwrap()
-            .downcast_ref::<StarlarkConfig>()
-            .unwrap();
-        store.0.borrow_mut().push(Instance {
-            transmission: transmission.clone(),
-            policies: policies.into_iter().cloned().collect(),
-        });
-        Ok(NoneType)
-    }
+pub fn construct_transmission(d: &Dynamic) -> Result<Transmission, Box<EvalAltResult>> {
+    from_dynamic::<Transmission>(d)
 }
 
-#[derive(PartialEq, Debug)]
+pub fn construct_condition(c: Condition) -> Condition {
+    c
+}
+
+pub fn construct_noop_delete_policy(
+    name: &str,
+    match_when: Condition,
+) -> Result<DeletePolicy, Box<EvalAltResult>> {
+    Ok(DeletePolicy {
+        name: Some(name.to_string()),
+        match_when: match_when.sanity_check()?,
+        delete_data: false,
+    })
+}
+
+pub fn construct_real_delete_policy(
+    name: &str,
+    match_when: Condition,
+) -> Result<DeletePolicy, Box<EvalAltResult>> {
+    Ok(DeletePolicy {
+        name: Some(name.to_string()),
+        match_when: match_when.sanity_check()?,
+        delete_data: true,
+    })
+}
+
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct Instance {
     pub transmission: Transmission,
     pub policies: Vec<DeletePolicy>,
+}
+
+impl Instance {
+    pub fn new(transmission: Transmission, policies: Array) -> Result<Self, Box<EvalAltResult>> {
+        Ok(Instance {
+            transmission,
+            policies: Dynamic::from(policies)
+                .into_typed_array()
+                .map_err(|e| format!("{e}"))?,
+        })
+    }
 }
