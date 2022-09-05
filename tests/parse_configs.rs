@@ -1,3 +1,4 @@
+use anyhow::bail;
 use gearbox_maintenance::config::configure;
 use std::collections::HashMap;
 use std::fs::File;
@@ -24,7 +25,7 @@ fn build_config(
 
 #[test]
 fn can_include_configs() -> anyhow::Result<()> {
-    let (path, tmpdir) = build_config(
+    let (path, _tmpdir) = build_config(
         r#"
       import "baz" as b;
 
@@ -39,8 +40,32 @@ fn can_include_configs() -> anyhow::Result<()> {
             r#"export const url = "bar";"#.to_string(),
         )]),
     )?;
-    tmpdir.into_path();
-    println!("main config: {:?}", path);
     configure(&path).map_err(|e| anyhow::anyhow!("{e}"))?;
+    Ok(())
+}
+
+#[test]
+fn noop_and_non_noop_policies() -> anyhow::Result<()> {
+    let (path, _tmpdir) = build_config(
+        r#"
+      [rules(
+         transmission("x"),
+         [
+           delete_policy("should_delete", matching([]).max_ratio(1.0)),
+           noop_delete_policy("should_not_delete", matching([]).max_ratio(1.0)),
+         ]
+       )
+      ]
+    "#
+        .to_string(),
+        HashMap::from([]),
+    )?;
+    let instances = configure(&path).map_err(|e| anyhow::anyhow!("{e}"))?;
+    if let [inst] = &instances[..] {
+        assert!(inst.policies[0].delete_data);
+        assert!(!inst.policies[1].delete_data);
+    } else {
+        bail!("No instances")
+    }
     Ok(())
 }
