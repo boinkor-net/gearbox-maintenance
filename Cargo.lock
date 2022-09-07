@@ -893,9 +893,9 @@ dependencies = [
 
 [[package]]
 name = "prometheus-hyper"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8726fd64f2941cc80d6739a7d001d756a22b660737839fd7b15202f5cb7f4bf6"
+checksum = "18fc98d5705a20b11f8b240c0857167b79852ba469f9faec6df0027e576e676e"
 dependencies = [
  "hyper",
  "prometheus",
