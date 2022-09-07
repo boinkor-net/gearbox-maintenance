@@ -8,23 +8,23 @@ on:
       - staging
       - trying
   schedule:
-    - cron: '0 23 * * FRI'
+    - cron: "0 23 * * FRI"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_toolchain: [nightly-2022-05-15, nightly]
+        rust_toolchain: [stable]
         cargo_args:
           - ""
     steps:
       - uses: actions/checkout@v3.0.2
       - uses: actions-rs/toolchain@v1
         with:
-            toolchain: ${{ matrix.rust_toolchain }}
-            override: true
-            profile: minimal
+          toolchain: ${{ matrix.rust_toolchain }}
+          override: true
+          profile: minimal
       - name: "cargo test"
         uses: actions-rs/cargo@v1
         with:
@@ -52,21 +52,21 @@ jobs:
   cargo_deny:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.0.2
-    - name: "cargo deny"
-      uses: EmbarkStudios/cargo-deny-action@v1
-      with:
-        command: "check all"
+      - uses: actions/checkout@v3.0.2
+      - name: "cargo deny"
+        uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          command: "check all"
 
   cargo_clippy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.0.2
-    - name: "cargo clippy"
-      uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: -- -D warnings
+      - uses: actions/checkout@v3.0.2
+      - name: "cargo clippy"
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: -- -D warnings
 
   # cargo_bench:
   #   runs-on: ubuntu-latest
