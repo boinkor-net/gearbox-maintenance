@@ -15,10 +15,10 @@ maintenance = { status = "passively-maintained" }
 [dependencies]
 transmission-rpc = "0.3.6"
 tokio = { version = "1.20.1", features = ["full"] }
-tracing = "0.1.35"
+tracing = "0.1.36"
 tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
 anyhow = "1.0.64"
-chrono = "0.4.19"
+chrono = "0.4.20"
 url = "2.2.2"
 enum-iterator = "1.1.3"
 structopt = "0.3"
