@@ -43,9 +43,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.64"
+version = "1.0.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9a8f622bcf6ff3df478e9deba3e03e4e04b300f8e6a139e192c05fa3490afc7"
+checksum = "98161a4e3e2184da77bb14f02184cdd111e83bbbcc9979dfee3c44b9a85f5602"
 
 [[package]]
 name = "atty"
@@ -1033,9 +1033,9 @@ dependencies = [
 
 [[package]]
 name = "rhai"
-version = "1.9.1"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3819cc705765a6def80466451e5e20053a536f940fa8c7ea3688a7e554a7dc89"
+checksum = "863c895db914cfbef71203b027f6336c00c9aed51c985c484584c37dd0375c51"
 dependencies = [
  "ahash",
  "bitflags",
