@@ -19,20 +19,20 @@ pub fn configure(file: &Path) -> Result<Vec<Instance>, Box<EvalAltResult>> {
         .register_fn("transmission", Transmission::new)
         .register_fn("user", Transmission::with_user)
         .register_fn("password", Transmission::with_password)
-        .register_result_fn("poll_interval", Transmission::with_poll_interval)
+        .register_fn("poll_interval", Transmission::with_poll_interval)
         // Instance type:
         .register_type_with_name::<Instance>("Instance")
-        .register_result_fn("rules", Instance::new)
+        .register_fn("rules", Instance::new)
         // Policies
-        .register_result_fn("noop_delete_policy", construct_noop_delete_policy)
-        .register_result_fn("delete_policy", construct_real_delete_policy)
+        .register_fn("noop_delete_policy", construct_noop_delete_policy)
+        .register_fn("delete_policy", construct_real_delete_policy)
         // Conditions
-        .register_result_fn("matching", Condition::new)
+        .register_fn("matching", Condition::new)
         .register_fn("max_ratio", Condition::with_max_ratio)
         .register_fn("min_file_count", Condition::with_min_file_count)
         .register_fn("max_file_count", Condition::with_max_file_count)
-        .register_result_fn("min_seeding_time", Condition::with_min_seeding_time)
-        .register_result_fn("max_seeding_time", Condition::with_max_seeding_time);
+        .register_fn("min_seeding_time", Condition::with_min_seeding_time)
+        .register_fn("max_seeding_time", Condition::with_max_seeding_time);
 
     Dynamic::from(
         engine
