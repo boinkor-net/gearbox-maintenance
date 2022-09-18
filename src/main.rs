@@ -83,10 +83,12 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     let mut sizes: HashMap<String, usize> = Default::default();
     for torrent in all_torrents {
         for (index, policy) in instance.policies.iter().enumerate() {
-            let is_match = policy.match_when.matches_torrent(&torrent);
-            if is_match.is_real_mismatch() {
+            let applicable = policy.applicable(&torrent).map(|a| a.matches());
+            if applicable.is_none() {
+                // This torrent is not interesting to us
                 continue;
             }
+            let is_match = applicable.unwrap(); // Oh if only we had let else
             counts
                 .entry(policy.name_or_index(index).into_owned())
                 .and_modify(|n| *n += 1)
