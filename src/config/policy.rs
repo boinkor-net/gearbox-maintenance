@@ -13,7 +13,7 @@ use crate::Torrent;
 ///
 /// The policy itself doesn't need to match, this is just to indicate
 /// that it *could* even match.
-#[derive(PartialEq, Clone, Default, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Default, Debug, Serialize, Deserialize)]
 pub struct PolicyMatch {
     /// The tracker URL hostnames (only the host, not the path or
     /// port) that the policy should apply to.
