@@ -308,6 +308,7 @@ pub struct ApplicableDeletePolicy<'a> {
 }
 
 impl<'a> ApplicableDeletePolicy<'a> {
+    /// Checks whether the torrent can be deleted.
     pub fn matches(&self) -> ConditionMatch {
         self.policy.match_when.matches_torrent(self.torrent)
     }
@@ -319,17 +320,19 @@ pub struct DeletePolicy {
     pub name: Option<String>,
 
     /// The condition under which a torrent is governed by this policy.
-    pub precondition: PolicyMatch,
+    pub(crate) precondition: PolicyMatch,
 
     /// The condition indicating whether to delete a governed torrent.
     #[serde(rename = "match")]
-    pub match_when: Condition,
+    pub(crate) match_when: Condition,
 
     /// Whether to pass "trash data" to the transmission API method.
     pub delete_data: bool,
 }
 
 impl DeletePolicy {
+    /// Ensures that the policy can be applied to a torrent, and only
+    /// if it is, allows chaining a `.matches` call.
     pub fn applicable<'a>(&'a self, t: &'a Torrent) -> Option<ApplicableDeletePolicy> {
         self.precondition
             .governed_by_policy(t)
