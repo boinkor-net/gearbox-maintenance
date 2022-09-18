@@ -44,14 +44,16 @@ Here's an example config file:
         .poll_interval("20min"),
       [
           delete_policy("horse_seasons",
-                        matching(["tracker-hostname.horse"])
-                          .min_file_count(2)
+                        on_trackers(["tracker-hostname.horse"])
+                          .min_file_count(2),
+                        matching()
                           .max_ratio(2.3)
                           .min_seeding_time("2 days")
                           .min_seeding_time("14 days")),
           delete_policy("horse_episodes",
-                        matching(["tracker-hostname.horse"])
-                          .max_file_count(1)
+                        on_trackers(["tracker-hostname.horse"])
+                          .max_file_count(1),
+                        matching()
                           .max_ratio(2.3)
                           .min_seeding_time("24 hours")
                           .max_seeding_time("3 days"))

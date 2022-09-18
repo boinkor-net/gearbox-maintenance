@@ -9,9 +9,12 @@ use url::Url;
 
 use crate::Torrent;
 
-/// Conditions for matching a torrent for a policy on a transmission instance.
-#[derive(PartialEq, Clone, Default, Serialize, Deserialize)]
-pub struct Condition {
+/// A set of conditions that indicate that a torrent is governed by a particular policy.
+///
+/// The policy itself doesn't need to match, this is just to indicate
+/// that it *could* even match.
+#[derive(PartialEq, Eq, Clone, Default, Debug, Serialize, Deserialize)]
+pub struct PolicyMatch {
     /// The tracker URL hostnames (only the host, not the path or
     /// port) that the policy should apply to.
     pub trackers: HashSet<String>,
@@ -23,6 +26,105 @@ pub struct Condition {
     /// The maximum number of files that may be present in a torrent
     /// for the policy to match. If None, any number of files matches.
     pub max_file_count: Option<i64>,
+}
+
+impl PolicyMatch {
+    pub fn new(trackers: Array) -> Result<Self, Box<EvalAltResult>> {
+        let trackers: Vec<String> = Dynamic::from(trackers).into_typed_array()?;
+        Ok(PolicyMatch {
+            trackers: trackers.into_iter().collect(),
+            ..Default::default()
+        })
+    }
+
+    pub fn with_min_file_count(self, min_file_count: i64) -> Self {
+        Self {
+            min_file_count: Some(min_file_count),
+            ..self
+        }
+    }
+
+    pub fn with_max_file_count(self, max_file_count: i64) -> Self {
+        Self {
+            max_file_count: Some(max_file_count),
+            ..self
+        }
+    }
+
+    #[tracing::instrument]
+    fn governed_by_policy(&self, t: &Torrent) -> bool {
+        if t.status != crate::Status::Seeding {
+            debug!("Torrent {:?} is not seeding, bailing", t);
+            return false;
+        }
+
+        if !t
+            .trackers
+            .iter()
+            .filter_map(Url::host_str)
+            .any(|tracker_host| self.trackers.contains(tracker_host))
+        {
+            debug!(
+                "Torrent {:?} does not have matching trackers, expected {:?}",
+                t, self.trackers
+            );
+            return false;
+        }
+
+        let file_count = t.num_files as i64;
+        match (self.min_file_count, self.max_file_count) {
+            (Some(min), Some(max)) if file_count < min || file_count > max => {
+                debug!(
+                    "Torrent {:?} doesn't have the right number of files: {}",
+                    t, file_count
+                );
+                return false;
+            }
+            (None, Some(max)) if file_count > max => {
+                debug!(
+                    "Torrent {:?} doesn't have the right number of files: {}",
+                    t, file_count
+                );
+                return false;
+            }
+            (Some(min), None) if file_count < min => {
+                debug!(
+                    "Torrent {:?} doesn't have the right number of files: {}",
+                    t, file_count
+                );
+                return false;
+            }
+            (_, _) => {}
+        }
+
+        true
+    }
+}
+
+impl fmt::Display for PolicyMatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Pre:[{:?}", self.trackers)?;
+        if let Some(min_file_count) = self.min_file_count {
+            write!(f, " {}<f", min_file_count)?;
+            if let Some(max_file_count) = self.max_file_count {
+                write!(f, "<={}", max_file_count)?;
+            }
+        } else if let Some(max_file_count) = self.max_file_count {
+            write!(f, " f<={}", max_file_count)?;
+        }
+        write!(f, "]")
+    }
+}
+
+/// Conditions for matching a torrent that are governed by a policy on
+/// a transmission instance.
+///
+/// There's a second set of conditions that need to match: See [PolicyMatch].
+#[derive(PartialEq, Clone, Default, Serialize, Deserialize)]
+pub struct Condition {
+    /// The ratio at which a torrent qualifies for deletion, even if
+    /// it has been seeded for less than [`max_seeding_time`].
+    pub max_ratio: Option<f64>,
 
     /// The minimum amount of time that a torrent must have been
     /// seeding for, to qualify for deletion.
@@ -32,20 +134,14 @@ pub struct Condition {
     #[serde(with = "chrono_optional_duration")]
     pub min_seeding_time: Option<Duration>,
 
-    /// The ratio at which a torrent qualifies for deletion, even if
-    /// it has been seeded for less than [`max_seeding_time`].
-    pub max_ratio: Option<f64>,
-
     /// The duration at which a torrent qualifies for deletion.
     #[serde(with = "chrono_optional_duration")]
     pub max_seeding_time: Option<Duration>,
 }
 
 impl Condition {
-    pub fn new(trackers: Array) -> Result<Self, Box<EvalAltResult>> {
-        let trackers: Vec<String> = Dynamic::from(trackers).into_typed_array()?;
+    pub fn new() -> Result<Self, Box<EvalAltResult>> {
         Ok(Condition {
-            trackers: trackers.into_iter().collect(),
             ..Default::default()
         })
     }
@@ -82,20 +178,6 @@ impl Condition {
             ..self
         }
     }
-
-    pub fn with_min_file_count(self, min_file_count: i64) -> Self {
-        Self {
-            min_file_count: Some(min_file_count),
-            ..self
-        }
-    }
-
-    pub fn with_max_file_count(self, max_file_count: i64) -> Self {
-        Self {
-            max_file_count: Some(max_file_count),
-            ..self
-        }
-    }
 }
 
 mod condition_match {
@@ -107,9 +189,6 @@ mod condition_match {
     #[derive(PartialEq, Copy, Clone, Debug, EnumKind)]
     #[enum_kind(ConditionMatchKind)]
     pub enum ConditionMatch {
-        /// Preconditions (not seeding, trackers, number of files) don't match.
-        PreconditionsMismatch,
-
         /// Preconditions met, but did not match.
         None,
 
@@ -127,7 +206,6 @@ impl fmt::Display for ConditionMatch {
         use hhmmss::Hhmmss;
         use ConditionMatch::*;
         match self {
-            PreconditionsMismatch => write!(f, "PreconditionsMismatch"),
             None => write!(f, "None"),
             Ratio(r) => write!(f, "Ratio({})", r),
             SeedTime(d) => write!(f, "SeedTime({})", d.hhmmss()),
@@ -137,11 +215,7 @@ impl fmt::Display for ConditionMatch {
 
 impl ConditionMatch {
     pub fn is_match(&self) -> bool {
-        self != &ConditionMatch::None && self != &ConditionMatch::PreconditionsMismatch
-    }
-
-    pub fn failed_with_precondition(&self) -> bool {
-        self == &ConditionMatch::PreconditionsMismatch
+        self != &ConditionMatch::None
     }
 
     pub fn is_real_mismatch(&self) -> bool {
@@ -164,52 +238,9 @@ impl Condition {
         Ok(self)
     }
 
-    /// Returns true of the condition matches a given torrent.
+    /// Returns true if the condition matches a given torrent.
     #[tracing::instrument]
     pub fn matches_torrent(&self, t: &Torrent) -> ConditionMatch {
-        if t.status != crate::Status::Seeding {
-            debug!("Torrent {:?} is not seeding, bailing", t);
-            return ConditionMatch::PreconditionsMismatch;
-        }
-
-        if !t
-            .trackers
-            .iter()
-            .filter_map(Url::host_str)
-            .any(|tracker_host| self.trackers.contains(tracker_host))
-        {
-            debug!(
-                "Torrent {:?} does not have matching trackers, expected {:?}",
-                t, self.trackers
-            );
-            return ConditionMatch::PreconditionsMismatch;
-        }
-
-        let file_count = t.num_files as i64;
-        match (self.min_file_count, self.max_file_count) {
-            (Some(min), Some(max)) if file_count < min || file_count > max => {
-                debug!(
-                    "Torrent {:?} doesn't have the right number of files: {}",
-                    t, file_count
-                );
-                return ConditionMatch::PreconditionsMismatch;
-            }
-            (None, Some(max)) if file_count > max => {
-                debug!(
-                    "Torrent {:?} doesn't have the right number of files: {}",
-                    t, file_count
-                );
-                return ConditionMatch::PreconditionsMismatch;
-            }
-            (Some(min), None) if file_count < min => {
-                debug!(
-                    "Torrent {:?} doesn't have the right number of files: {}",
-                    t, file_count
-                );
-                return ConditionMatch::PreconditionsMismatch;
-            }
-            (_, _) => {}
-        }
         if let Some(done_date) = t.done_date {
             if done_date.timestamp() == 0 {
                 // Can never be a useful time
@@ -253,15 +284,7 @@ impl fmt::Debug for Condition {
 
 impl fmt::Display for Condition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "When:[{:?}", self.trackers)?;
-        if let Some(min_file_count) = self.min_file_count {
-            write!(f, " {}<f", min_file_count)?;
-            if let Some(max_file_count) = self.max_file_count {
-                write!(f, "<={}", max_file_count)?;
-            }
-        } else if let Some(max_file_count) = self.max_file_count {
-            write!(f, " f<={}", max_file_count)?;
-        }
+        write!(f, "When:[")?;
         if let Some(min_seeding_time) = self.min_seeding_time {
             write!(f, " {}>t", min_seeding_time)?;
             if let Some(max_seeding_time) = self.max_seeding_time {
@@ -277,14 +300,47 @@ impl fmt::Display for Condition {
     }
 }
 
+/// A policy that can be applied to a given torrent.
+#[derive(Debug, PartialEq)]
+pub struct ApplicableDeletePolicy<'a> {
+    torrent: &'a Torrent,
+    policy: &'a DeletePolicy,
+}
+
+impl<'a> ApplicableDeletePolicy<'a> {
+    /// Checks whether the torrent can be deleted.
+    pub fn matches(&self) -> ConditionMatch {
+        self.policy.match_when.matches_torrent(self.torrent)
+    }
+}
+
 /// Specifies a condition for torrents that can be deleted.
 #[derive(PartialEq, Clone, Serialize, Deserialize)]
 pub struct DeletePolicy {
     pub name: Option<String>,
-    /// The condition under which to match
+
+    /// The condition under which a torrent is governed by this policy.
+    pub(crate) precondition: PolicyMatch,
+
+    /// The condition indicating whether to delete a governed torrent.
     #[serde(rename = "match")]
-    pub match_when: Condition,
+    pub(crate) match_when: Condition,
+
+    /// Whether to pass "trash data" to the transmission API method.
     pub delete_data: bool,
+}
+
+impl DeletePolicy {
+    /// Ensures that the policy can be applied to a torrent, and only
+    /// if it is, allows chaining a `.matches` call.
+    pub fn applicable<'a>(&'a self, t: &'a Torrent) -> Option<ApplicableDeletePolicy> {
+        self.precondition
+            .governed_by_policy(t)
+            .then(|| ApplicableDeletePolicy {
+                torrent: t,
+                policy: self,
+            })
+    }
 }
 
 impl fmt::Debug for DeletePolicy {
@@ -318,23 +374,32 @@ mod test {
     use test_case::test_case;
 
     // Should never delete younglings:
-    #[test_case("1 min", 0.0, ConditionMatchKind::None; "young torrent at unmet ratio")]
-    #[test_case("1 min", 7.0, ConditionMatchKind::None; "young torrent at exceeded ratio")]
+    #[test_case("1 min", 0.0, Some(ConditionMatchKind::None); "young torrent at unmet ratio")]
+    #[test_case("1 min", 7.0, Some(ConditionMatchKind::None); "young torrent at exceeded ratio")]
     // If they're older, we can delete if ratio is met:
-    #[test_case("6 hrs", 1.1, ConditionMatchKind::Ratio; "medium and ratio exceeded")]
-    #[test_case("6 hrs", 0.9, ConditionMatchKind::None; "medium and ratio not met")]
+    #[test_case("6 hrs", 1.1, Some(ConditionMatchKind::Ratio); "medium and ratio exceeded")]
+    #[test_case("6 hrs", 0.9, Some(ConditionMatchKind::None); "medium and ratio not met")]
     // Any that are really old are fair game:
-    #[test_case("12 days", 0.9, ConditionMatchKind::SeedTime; "when seeding long enough at unmet ratio")]
-    #[test_case("12 days", 1.5, ConditionMatchKind::Ratio; "when seeding long enough at exceeded ratio")]
+    #[test_case("12 days", 0.9, Some(ConditionMatchKind::SeedTime); "when seeding long enough at unmet ratio")]
+    #[test_case("12 days", 1.5, Some(ConditionMatchKind::Ratio); "when seeding long enough at exceeded ratio")]
     #[test_log::test]
-    fn condition_seed_time(time: &str, upload_ratio: f32, matches: ConditionMatchKind) {
+    fn condition_seed_time(time: &str, upload_ratio: f32, matches: Option<ConditionMatchKind>) {
         let time = Duration::from_std(parse_duration::parse(time).unwrap()).unwrap();
-        let condition = Condition {
+        let precondition = PolicyMatch {
             trackers: vec!["tracker".to_string()].into_iter().collect(),
+            ..Default::default()
+        };
+        let match_when = Condition {
             max_ratio: Some(1.0),
             min_seeding_time: Some(Duration::minutes(60)),
             max_seeding_time: Some(Duration::days(2)),
             ..Default::default()
+        };
+        let pol = DeletePolicy {
+            name: None,
+            precondition,
+            match_when,
+            delete_data: false,
         };
         let t = Torrent {
             id: 1,
@@ -350,7 +415,9 @@ mod test {
             trackers: vec![Url::parse("https://tracker:8080/announce").unwrap()],
         };
         assert_eq!(
-            ConditionMatchKind::from(condition.matches_torrent(&t)),
+            pol.applicable(&t)
+                .map(|a| a.matches())
+                .map(ConditionMatchKind::from),
             matches
         );
     }
@@ -361,15 +428,23 @@ mod test {
     #[test_case(4, false; "within range: 4")]
     #[test_case(5, true; "out of range: 5")]
     #[test_log::test]
-    fn condition_num_files(num_files: usize, matches: bool) {
-        let condition = Condition {
+    fn condition_num_files(num_files: usize, rejected: bool) {
+        let precondition = PolicyMatch {
             trackers: vec!["tracker".to_string()].into_iter().collect(),
+            min_file_count: Some(2),
+            max_file_count: Some(4),
+        };
+        let match_when = Condition {
             max_ratio: Some(1.0),
             min_seeding_time: Some(Duration::minutes(60)),
             max_seeding_time: Some(Duration::days(2)),
-            min_file_count: Some(2),
-            max_file_count: Some(4),
             ..Default::default()
+        };
+        let pol = DeletePolicy {
+            match_when,
+            precondition,
+            name: None,
+            delete_data: false,
         };
         let t = Torrent {
             id: 1,
@@ -384,28 +459,37 @@ mod test {
             total_size: 30000,
             trackers: vec![Url::parse("https://tracker:8080/announce").unwrap()],
         };
-        assert_eq!(
-            condition.matches_torrent(&t).failed_with_precondition(),
-            matches
-        );
+        if rejected {
+            assert_eq!(pol.applicable(&t).map(|a| a.matches()), None);
+        } else {
+            assert_ne!(pol.applicable(&t).map(|a| a.matches()), None);
+        }
     }
 
     #[test_case("http://example.com:8080/announce", false; "with tracker that matches")]
     #[test_case(
         "http://example-nomatch.com:8080/announce",
         true;
-        "with tracker that does not matche"
+        "with tracker that does not match"
     )]
     #[test_log::test]
-    fn tracker_url(tracker: &str, matches: bool) {
-        let condition = Condition {
+    fn tracker_url(tracker: &str, rejected: bool) {
+        let precondition = PolicyMatch {
             trackers: vec!["example.com".to_string()].into_iter().collect(),
+            min_file_count: Some(2),
+            max_file_count: Some(4),
+        };
+        let match_when = Condition {
             max_ratio: Some(1.0),
             min_seeding_time: Some(Duration::minutes(60)),
             max_seeding_time: Some(Duration::days(2)),
-            min_file_count: Some(2),
-            max_file_count: Some(4),
             ..Default::default()
+        };
+        let pol = DeletePolicy {
+            match_when,
+            precondition,
+            name: None,
+            delete_data: false,
         };
         let t = Torrent {
             id: 1,
@@ -420,9 +504,10 @@ mod test {
             total_size: 30000,
             trackers: vec![Url::parse(tracker).unwrap()],
         };
-        assert_eq!(
-            condition.matches_torrent(&t).failed_with_precondition(),
-            matches
-        );
+        if rejected {
+            assert_eq!(pol.applicable(&t).map(|a| a.matches()), None);
+        } else {
+            assert_ne!(pol.applicable(&t).map(|a| a.matches()), None);
+        }
     }
 }

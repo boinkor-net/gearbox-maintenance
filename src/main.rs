@@ -83,8 +83,9 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     let mut sizes: HashMap<String, usize> = Default::default();
     for torrent in all_torrents {
         for (index, policy) in instance.policies.iter().enumerate() {
-            let is_match = policy.match_when.matches_torrent(&torrent);
-            if is_match.is_real_mismatch() {
+            let is_match = policy.applicable(&torrent).map(|a| a.matches());
+            if is_match.is_none() {
+                // This torrent is not interesting to us
                 continue;
             }
             counts
@@ -101,28 +102,21 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                     policy.name_or_index(index).as_ref(),
                 ])?
                 .observe(torrent.total_size as f64);
-            if is_match.is_match() {
+            if let Some(true) = is_match.map(|cm| cm.is_match()) {
                 TORRENT_DELETIONS
                     .get_metric_with_label_values(&[
                         &instance.transmission.url,
                         policy.name_or_index(index).as_ref(),
                     ])?
                     .inc();
-                if !take_action {
-                    info!(
-                        "Would delete {}: matches {} on {}",
-                        torrent.name,
-                        is_match,
-                        policy.name_or_index(index),
-                    );
-                } else {
-                    info!(
-                        "Will delete {}: matches {} on {}",
-                        torrent.name,
-                        is_match,
-                        policy.name_or_index(index)
-                    );
-                }
+                info!(
+                    torrent = ?torrent.name,
+                    matched_policy = ?policy.name_or_index(index),
+                    ?take_action,
+                    delete_data = ?policy.delete_data,
+                    "Matched torrent",
+                );
+
                 if policy.delete_data {
                     delete_ids_with_data.push(Id::Hash(torrent.hash.to_string()));
                 } else {

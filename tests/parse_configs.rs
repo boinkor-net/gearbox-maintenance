@@ -51,8 +51,8 @@ fn noop_and_non_noop_policies() -> anyhow::Result<()> {
       [rules(
          transmission("x"),
          [
-           delete_policy("should_delete", matching([]).max_ratio(1.0)),
-           noop_delete_policy("should_not_delete", matching([]).max_ratio(1.0)),
+           delete_policy("should_delete", on_trackers(["foo"]), matching().max_ratio(1.0)),
+           noop_delete_policy("should_not_delete", on_trackers(["bar"]), matching().max_ratio(1.0)),
          ]
        )
       ]
