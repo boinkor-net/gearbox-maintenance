@@ -27,7 +27,7 @@ enum-kinds = "0.5.1"
 prometheus = "0.13.2"
 prometheus-hyper = "0.1"
 futures = "0.3.24"
-once_cell = "1.14.0"
+once_cell = "1.15.0"
 hhmmss = "0.1.0"
 serde = "*"
 rhai = { version = "1.10.0", features = ["serde"] }
