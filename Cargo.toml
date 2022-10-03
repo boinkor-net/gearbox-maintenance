@@ -33,6 +33,6 @@ serde = "*"
 rhai = { version = "1.10.0", features = ["serde"] }
 
 [dev-dependencies]
-test-case = "2.2.1"
+test-case = "2.2.2"
 test-log = { version = "0.2.11", features = ["trace"], default-features = false }
 tempfile = "3.3.0"
