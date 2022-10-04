@@ -336,7 +336,7 @@ impl DeletePolicy {
     pub fn applicable<'a>(&'a self, t: &'a Torrent) -> Option<ApplicableDeletePolicy> {
         self.precondition
             .governed_by_policy(t)
-            .then(|| ApplicableDeletePolicy {
+            .then_some(ApplicableDeletePolicy {
                 torrent: t,
                 policy: self,
             })
