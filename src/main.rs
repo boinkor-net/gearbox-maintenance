@@ -66,7 +66,7 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
             .clone()
             .unwrap_or_else(|| "".to_string()),
     };
-    let client = TransClient::with_auth(&url, basic_auth);
+    let mut client = TransClient::with_auth(&url, basic_auth);
     let all_torrents: Vec<Torrent> = client
         .torrent_get(Torrent::request_fields(), None)
         .await
