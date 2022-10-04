@@ -104,12 +104,12 @@ impl Torrent {
             HashString,
             Name,
             Error,
-            Errorstring,
+            ErrorString,
             Status,
-            Uploadratio,
-            Donedate,
+            UploadRatio,
+            DoneDate,
             Files,
-            Totalsize,
+            TotalSize,
             Trackers,
         ])
     }
