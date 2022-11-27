@@ -106,8 +106,9 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
             id: ensure_field(t.id, "id")?,
             hash: ensure_field(t.hash_string, "hash_string")?,
             name: ensure_field(t.name, "name")?,
-            done_date: t.done_date.map(|epoch| {
-                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(epoch, 0), Utc)
+            done_date: t.done_date.and_then(|epoch| {
+                NaiveDateTime::from_timestamp_opt(epoch, 0)
+                    .map(|time| DateTime::<Utc>::from_utc(time, Utc))
             }),
             error: Error::try_from(ensure_field(t.error, "error")?).context("parsing error")?,
             error_string: ensure_field(t.error_string, "error_string")?,
