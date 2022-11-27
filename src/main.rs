@@ -16,6 +16,7 @@ use transmission_rpc::{
     types::{BasicAuth, Id},
     TransClient,
 };
+use url::Url;
 
 #[derive(StructOpt)]
 struct Opt {
@@ -53,12 +54,12 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     let status = FailureCounter::new(
         TICK_FAILURES.get_metric_with_label_values(&[&instance.transmission.url])?,
     );
-    let url = instance.transmission.url.to_string();
+    let url = Url::parse(&instance.transmission.url)?;
     let basic_auth = BasicAuth {
         user: instance.transmission.user.clone().unwrap_or_default(),
         password: instance.transmission.password.clone().unwrap_or_default(),
     };
-    let mut client = TransClient::with_auth(&url, basic_auth);
+    let mut client = TransClient::with_auth(url, basic_auth);
     let all_torrents: Vec<Torrent> = client
         .torrent_get(Torrent::request_fields(), None)
         .await

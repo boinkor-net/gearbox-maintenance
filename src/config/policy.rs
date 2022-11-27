@@ -5,6 +5,7 @@ use chrono::{Duration, Utc};
 use rhai::{Array, Dynamic, EvalAltResult};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
+use transmission_rpc::types::TorrentStatus;
 use url::Url;
 
 use crate::Torrent;
@@ -53,7 +54,7 @@ impl PolicyMatch {
 
     #[tracing::instrument]
     fn governed_by_policy(&self, t: &Torrent) -> bool {
-        if t.status != crate::Status::Seeding {
+        if t.status != TorrentStatus::Seeding {
             debug!("Torrent {:?} is not seeding, bailing", t);
             return false;
         }
@@ -409,7 +410,7 @@ mod test {
             error: crate::Error::Ok,
             error_string: "".to_string(),
             upload_ratio,
-            status: crate::Status::Seeding,
+            status: TorrentStatus::Seeding,
             num_files: 1,
             total_size: 30000,
             trackers: vec![Url::parse("https://tracker:8080/announce").unwrap()],
@@ -454,7 +455,7 @@ mod test {
             error: crate::Error::Ok,
             error_string: "".to_string(),
             upload_ratio: 2.0,
-            status: crate::Status::Seeding,
+            status: TorrentStatus::Seeding,
             num_files,
             total_size: 30000,
             trackers: vec![Url::parse("https://tracker:8080/announce").unwrap()],
@@ -499,7 +500,7 @@ mod test {
             error: crate::Error::Ok,
             error_string: "".to_string(),
             upload_ratio: 2.0,
-            status: crate::Status::Seeding,
+            status: TorrentStatus::Seeding,
             num_files: 3,
             total_size: 30000,
             trackers: vec![Url::parse(tracker).unwrap()],

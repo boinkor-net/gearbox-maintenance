@@ -6,34 +6,8 @@ use std::convert::TryFrom;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use enum_iterator::{self, Sequence};
-use transmission_rpc::types::TorrentGetField;
+use transmission_rpc::types::{TorrentGetField, TorrentStatus};
 use url::Url;
-
-/// Status of a torrent in transmission, from the RPC
-#[derive(Sequence, PartialEq, Eq, Debug, Clone, Copy)]
-pub enum Status {
-    Stopped = 0,
-    QueuedToCheckFiles = 1,
-    CheckingFiles = 2,
-    QueuedToDownload = 3,
-    Downloading = 4,
-    QueuedToSeed = 5,
-    Seeding = 6,
-}
-
-impl TryFrom<i64> for Status {
-    type Error = anyhow::Error;
-
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
-        if value >= 0 && value <= (enum_iterator::last::<Status>().unwrap() as i64) {
-            enum_iterator::all::<Status>()
-                .nth(value as usize)
-                .ok_or_else(|| anyhow!(format!("{}", value)))
-        } else {
-            Err(anyhow!(format!("{}", value)))
-        }
-    }
-}
 
 /// What is this torrent doing right now?
 #[derive(Sequence, PartialEq, Eq, Debug, Clone)]
@@ -72,7 +46,7 @@ pub struct Torrent {
     pub error: Error,
     pub error_string: String,
     pub upload_ratio: f32,
-    pub status: Status,
+    pub status: TorrentStatus,
     pub num_files: usize,
     pub total_size: usize,
     pub trackers: Vec<Url>,
@@ -138,8 +112,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
             error: Error::try_from(ensure_field(t.error, "error")?).context("parsing error")?,
             error_string: ensure_field(t.error_string, "error_string")?,
             upload_ratio: ensure_field(t.upload_ratio, "upload_ratio")?,
-            status: Status::try_from(ensure_field(t.status, "status")?)
-                .context("Parsing status")?,
+            status: ensure_field(t.status, "status")?,
             num_files: ensure_field(t.files, "files")?.len(),
             total_size: ensure_field(t.total_size, "total_size")? as usize,
             trackers: ensure_field(t.trackers, "trackers")?
