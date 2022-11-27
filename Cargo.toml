@@ -16,7 +16,7 @@ maintenance = { status = "passively-maintained" }
 transmission-rpc = "0.4.0"
 tokio = { version = "1.21.2", features = ["full"] }
 tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.15", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 anyhow = "1.0.66"
 chrono = "0.4.22"
 url = "2.3.0"
