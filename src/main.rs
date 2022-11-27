@@ -55,16 +55,8 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     );
     let url = instance.transmission.url.to_string();
     let basic_auth = BasicAuth {
-        user: instance
-            .transmission
-            .user
-            .clone()
-            .unwrap_or_else(|| "".to_string()),
-        password: instance
-            .transmission
-            .password
-            .clone()
-            .unwrap_or_else(|| "".to_string()),
+        user: instance.transmission.user.clone().unwrap_or_default(),
+        password: instance.transmission.password.clone().unwrap_or_default(),
     };
     let mut client = TransClient::with_auth(&url, basic_auth);
     let all_torrents: Vec<Torrent> = client
