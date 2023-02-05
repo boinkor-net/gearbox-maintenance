@@ -30,7 +30,7 @@ futures = "0.3.25"
 once_cell = "1.16.0"
 hhmmss = "0.1.0"
 serde = "*"
-rhai = { version = "1.11.0", features = ["serde"] }
+rhai = { version = "1.12.0", features = ["serde"] }
 
 [dev-dependencies]
 test-case = "2.2.2"
