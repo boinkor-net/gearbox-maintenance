@@ -19,7 +19,7 @@ pub mod chrono_optional_duration {
         S: Serializer,
     {
         if let Some(dur) = dur {
-            let s = format!("{}", dur);
+            let s = format!("{dur}");
             serializer.serialize_str(&s)
         } else {
             serializer.serialize_str("")
@@ -45,7 +45,7 @@ pub mod chrono_duration {
     where
         S: Serializer,
     {
-        let s = format!("{}", dur);
+        let s = format!("{dur}");
         serializer.serialize_str(&s)
     }
 }

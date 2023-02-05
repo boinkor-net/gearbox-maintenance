@@ -106,12 +106,12 @@ impl fmt::Display for PolicyMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Pre:[{:?}", self.trackers)?;
         if let Some(min_file_count) = self.min_file_count {
-            write!(f, " {}<f", min_file_count)?;
+            write!(f, " {min_file_count}<f")?;
             if let Some(max_file_count) = self.max_file_count {
-                write!(f, "<={}", max_file_count)?;
+                write!(f, "<={max_file_count}")?;
             }
         } else if let Some(max_file_count) = self.max_file_count {
-            write!(f, " f<={}", max_file_count)?;
+            write!(f, " f<={max_file_count}")?;
         }
         write!(f, "]")
     }
@@ -208,7 +208,7 @@ impl fmt::Display for ConditionMatch {
         use ConditionMatch::*;
         match self {
             None => write!(f, "None"),
-            Ratio(r) => write!(f, "Ratio({})", r),
+            Ratio(r) => write!(f, "Ratio({r})"),
             SeedTime(d) => write!(f, "SeedTime({})", d.hhmmss()),
         }
     }
@@ -279,7 +279,7 @@ impl Condition {
 
 impl fmt::Debug for Condition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{self}")
     }
 }
 
@@ -287,15 +287,15 @@ impl fmt::Display for Condition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "When:[")?;
         if let Some(min_seeding_time) = self.min_seeding_time {
-            write!(f, " {}>t", min_seeding_time)?;
+            write!(f, " {min_seeding_time}>t")?;
             if let Some(max_seeding_time) = self.max_seeding_time {
-                write!(f, "<={}", max_seeding_time)?;
+                write!(f, "<={max_seeding_time}")?;
             }
         } else if let Some(max_seeding_time) = self.max_seeding_time {
-            write!(f, " t<={}", max_seeding_time)?;
+            write!(f, " t<={max_seeding_time}")?;
         }
         if let Some(max_ratio) = self.max_ratio {
-            write!(f, " r<{}", max_ratio)?;
+            write!(f, " r<{max_ratio}")?;
         }
         write!(f, "]")
     }
@@ -346,7 +346,7 @@ impl DeletePolicy {
 
 impl fmt::Debug for DeletePolicy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{self}")
     }
 }
 
@@ -394,7 +394,6 @@ mod test {
             max_ratio: Some(1.0),
             min_seeding_time: Some(Duration::minutes(60)),
             max_seeding_time: Some(Duration::days(2)),
-            ..Default::default()
         };
         let pol = DeletePolicy {
             name: None,
@@ -439,7 +438,6 @@ mod test {
             max_ratio: Some(1.0),
             min_seeding_time: Some(Duration::minutes(60)),
             max_seeding_time: Some(Duration::days(2)),
-            ..Default::default()
         };
         let pol = DeletePolicy {
             match_when,

@@ -29,9 +29,9 @@ impl TryFrom<i64> for Error {
         if value >= 0 && value <= (enum_iterator::last::<Error>().unwrap() as i64) {
             enum_iterator::all::<Error>()
                 .nth(value as usize)
-                .ok_or_else(|| anyhow!(format!("{}", value)))
+                .ok_or_else(|| anyhow!(format!("{value}")))
         } else {
-            Err(anyhow!(format!("{}", value)))
+            Err(anyhow!(format!("{value}")))
         }
     }
 }
@@ -95,7 +95,7 @@ impl Torrent {
 }
 
 fn ensure_field<T>(field: Option<T>, name: &str) -> Result<T, anyhow::Error> {
-    field.ok_or_else(|| anyhow!(format!("torrent has no field {:?}", name)))
+    field.ok_or_else(|| anyhow!(format!("torrent has no field {name:?}")))
 }
 
 impl TryFrom<transmission_rpc::types::Torrent> for Torrent {

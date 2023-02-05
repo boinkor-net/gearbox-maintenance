@@ -47,7 +47,7 @@ impl Transmission {
 
 impl fmt::Debug for Transmission {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Transmission({})", self)
+        write!(f, "Transmission({self})")
     }
 }
 
