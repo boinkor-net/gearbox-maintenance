@@ -35,4 +35,4 @@ rhai = { version = "1.12.0", features = ["serde"] }
 [dev-dependencies]
 test-case = "2.2.2"
 test-log = { version = "0.2.11", features = ["trace"], default-features = false }
-tempfile = "3.3.0"
+tempfile = "3.4.0"
