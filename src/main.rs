@@ -3,12 +3,12 @@ mod metrics;
 use metrics::*;
 
 use anyhow::{anyhow, Context, Result};
+use clap::Parser;
 use gearbox_maintenance::{
     config::{configure, Instance},
     Torrent,
 };
 use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf, sync::Arc};
-use structopt::StructOpt;
 use tokio::{task, time};
 use tracing::{debug, info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
@@ -18,16 +18,17 @@ use transmission_rpc::{
 };
 use url::Url;
 
-#[derive(StructOpt)]
+#[derive(Parser, Debug)]
+#[clap(author = "Andreas Fuchs <asf@boinkor.net>")]
 struct Opt {
     /// The config file to load
     config: PathBuf,
 
-    #[structopt(short = "f")]
+    #[clap(short = 'f')]
     /// Actually perform policy actions
     take_action: bool,
 
-    #[structopt(long)]
+    #[clap(long)]
     /// Serve prometheus metrics on this network address
     prometheus_listen_addr: Option<SocketAddr>,
 }
@@ -159,7 +160,7 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
 
     init_logging();
     // let instances = StarlarkConfig::configure(&opt.config)?;
