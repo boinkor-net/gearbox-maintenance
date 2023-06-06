@@ -19,7 +19,7 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 anyhow = "1.0.71"
 chrono = "0.4.26"
-url = "2.3.0"
+url = "2.4.0"
 enum-iterator = "1.4.0"
 parse_duration = "2.1.1"
 enum-kinds = "0.5.1"
