@@ -1,7 +1,7 @@
 pub mod config;
 mod util;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use std::convert::TryFrom;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -82,7 +82,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
                 NaiveDateTime::from_timestamp_opt(epoch, 0)
                     .map(|time| DateTime::<Utc>::from_utc(time, Utc))
             }),
-            error: ErrorType::try_from(ensure_field(t.error, "error")?).context("parsing error")?,
+            error: ensure_field(t.error, "error")?,
             error_string: ensure_field(t.error_string, "error_string")?,
             upload_ratio: ensure_field(t.upload_ratio, "upload_ratio")?,
             status: ensure_field(t.status, "status")?,
