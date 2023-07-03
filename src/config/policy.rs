@@ -373,6 +373,7 @@ impl DeletePolicy {
 mod test {
     use super::*;
     use test_case::test_case;
+    use transmission_rpc::types::ErrorType;
 
     // Should never delete younglings:
     #[test_case("1 min", 0.0, Some(ConditionMatchKind::None); "young torrent at unmet ratio")]
@@ -406,7 +407,7 @@ mod test {
             hash: "abcd".to_string(),
             name: "testcase".to_string(),
             done_date: Some(Utc::now() - time),
-            error: crate::Error::Ok,
+            error: ErrorType::Ok,
             error_string: "".to_string(),
             upload_ratio,
             status: TorrentStatus::Seeding,
@@ -450,7 +451,7 @@ mod test {
             hash: "abcd".to_string(),
             name: "testcase".to_string(),
             done_date: Some(Utc::now() - Duration::days(12)),
-            error: crate::Error::Ok,
+            error: ErrorType::Ok,
             error_string: "".to_string(),
             upload_ratio: 2.0,
             status: TorrentStatus::Seeding,
@@ -495,7 +496,7 @@ mod test {
             hash: "abcd".to_string(),
             name: "testcase".to_string(),
             done_date: Some(Utc::now() - Duration::days(12)),
-            error: crate::Error::Ok,
+            error: ErrorType::Ok,
             error_string: "".to_string(),
             upload_ratio: 2.0,
             status: TorrentStatus::Seeding,

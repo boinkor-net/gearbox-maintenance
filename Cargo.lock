@@ -363,7 +363,6 @@ version = "0.0.2-dev"
 dependencies = [
  "anyhow",
  "chrono",
- "enum-iterator",
  "enum-kinds",
  "futures",
  "hhmmss",
