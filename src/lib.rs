@@ -1,40 +1,12 @@
 pub mod config;
 mod util;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use std::convert::TryFrom;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use enum_iterator::{self, Sequence};
-use transmission_rpc::types::{TorrentGetField, TorrentStatus};
+use transmission_rpc::types::{ErrorType, TorrentGetField, TorrentStatus};
 use url::Url;
-
-/// What is this torrent doing right now?
-#[derive(Sequence, PartialEq, Eq, Debug, Clone)]
-pub enum Error {
-    /// everything's fine
-    Ok = 0,
-    /// when we anounced to the tracker, we got a warning in the response
-    TrackerWarning = 1,
-    /// when we anounced to the tracker, we got an error in the response
-    TrackerError = 2,
-    /// local trouble, such as disk full or permissions error
-    LocalError = 3,
-}
-
-impl TryFrom<i64> for Error {
-    type Error = anyhow::Error;
-
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
-        if value >= 0 && value <= (enum_iterator::last::<Error>().unwrap() as i64) {
-            enum_iterator::all::<Error>()
-                .nth(value as usize)
-                .ok_or_else(|| anyhow!(format!("{value}")))
-        } else {
-            Err(anyhow!(format!("{value}")))
-        }
-    }
-}
 
 /// A representation of a torrent on a transmission instance.
 #[derive(PartialEq, Clone)]
@@ -43,7 +15,7 @@ pub struct Torrent {
     pub hash: String,
     pub name: String,
     pub done_date: Option<DateTime<Utc>>,
-    pub error: Error,
+    pub error: ErrorType,
     pub error_string: String,
     pub upload_ratio: f32,
     pub status: TorrentStatus,
@@ -90,7 +62,7 @@ impl Torrent {
 
     /// Returns true of the torrent has no error status
     pub fn is_ok(&self) -> bool {
-        self.error == Error::Ok
+        self.error == ErrorType::Ok
     }
 }
 
@@ -110,7 +82,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
                 NaiveDateTime::from_timestamp_opt(epoch, 0)
                     .map(|time| DateTime::<Utc>::from_utc(time, Utc))
             }),
-            error: Error::try_from(ensure_field(t.error, "error")?).context("parsing error")?,
+            error: ensure_field(t.error, "error")?,
             error_string: ensure_field(t.error_string, "error_string")?,
             upload_ratio: ensure_field(t.upload_ratio, "upload_ratio")?,
             status: ensure_field(t.status, "status")?,
