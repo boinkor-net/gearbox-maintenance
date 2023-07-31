@@ -33,7 +33,11 @@ jobs:
           toolchain: ${{ matrix.rust_toolchain }}
 
   all_tests:
-    needs: test
+    needs:
+      - test
+      - rustfmt
+      - cargo_deny
+      - cargo_clippy
     runs-on: ubuntu-latest
     steps:
       - name: Mark the job as a success
