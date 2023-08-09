@@ -44,8 +44,8 @@
 "on":
   "merge_group": {}
   "pull_request":
-    "branches": "master"
+    "branches": "main"
   "push":
     "branches":
-    - "master"
+    - "main"
   "workflow_dispatch": {}
