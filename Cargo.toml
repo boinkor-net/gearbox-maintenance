@@ -14,10 +14,10 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 transmission-rpc = "0.4.1"
-tokio = { version = "1.29.1", features = ["full"] }
+tokio = { version = "1.32.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-anyhow = "1.0.72"
+anyhow = "1.0.75"
 chrono = "0.4.26"
 url = "2.4.0"
 parse_duration = "2.1.1"
