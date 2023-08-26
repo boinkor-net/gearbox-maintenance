@@ -32,9 +32,9 @@ rhai = { version = "1.15.1", features = ["serde"] }
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.3.22"
+version = "4.4.0"
 
 [dev-dependencies]
 test-case = "3.1.0"
 test-log = { version = "0.2.12", features = ["trace"], default-features = false }
-tempfile = "3.7.1"
+tempfile = "3.8.0"
