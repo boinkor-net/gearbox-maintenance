@@ -226,11 +226,9 @@ impl ConditionMatch {
 
 impl Condition {
     pub fn sanity_check(self) -> Result<Self, Box<EvalAltResult>> {
-        if vec![
-            self.min_seeding_time.map(|_| true),
+        if [self.min_seeding_time.map(|_| true),
             self.max_ratio.map(|_| true),
-            self.max_seeding_time.map(|_| true),
-        ]
+            self.max_seeding_time.map(|_| true)]
         .iter()
         .all(Option::is_none)
         {
