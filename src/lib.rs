@@ -80,7 +80,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
             name: ensure_field(t.name, "name")?,
             done_date: t.done_date.and_then(|epoch| {
                 NaiveDateTime::from_timestamp_opt(epoch, 0)
-                    .map(|time| DateTime::<Utc>::from_utc(time, Utc))
+                    .map(|time| DateTime::from_naive_utc_and_offset(time, Utc))
             }),
             error: ensure_field(t.error, "error")?,
             error_string: ensure_field(t.error_string, "error_string")?,
