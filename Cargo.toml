@@ -32,7 +32,7 @@ rhai = { version = "1.15.1", features = ["serde"] }
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.4.1"
+version = "4.4.2"
 
 [dev-dependencies]
 test-case = "3.1.0"
