@@ -18,7 +18,7 @@ tokio = { version = "1.32.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 anyhow = "1.0.75"
-chrono = "0.4.28"
+chrono = "0.4.30"
 url = "2.4.1"
 parse_duration = "2.1.1"
 enum-kinds = "0.5.1"
