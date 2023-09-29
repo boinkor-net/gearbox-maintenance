@@ -28,11 +28,11 @@ futures = "0.3.28"
 once_cell = "1.18.0"
 hhmmss = "0.1.0"
 serde = "*"
-rhai = { version = "1.16.1", features = ["serde"] }
+rhai = { version = "1.16.2", features = ["serde"] }
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.4.4"
+version = "4.4.6"
 
 [dev-dependencies]
 test-case = "3.2.1"
