@@ -14,7 +14,7 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 transmission-rpc = "0.4.1"
-tokio = { version = "1.32.0", features = ["full"] }
+tokio = { version = "1.33.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 anyhow = "1.0.75"
