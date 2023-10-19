@@ -15,7 +15,7 @@ maintenance = { status = "passively-maintained" }
 [dependencies]
 transmission-rpc = "0.4.1"
 tokio = { version = "1.33.0", features = ["full"] }
-tracing = "0.1.37"
+tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 anyhow = "1.0.75"
 chrono = "0.4.31"
@@ -36,5 +36,5 @@ version = "4.4.6"
 
 [dev-dependencies]
 test-case = "3.2.1"
-test-log = { version = "0.2.12", features = ["trace"], default-features = false }
+test-log = { version = "0.2.13", features = ["trace"], default-features = false }
 tempfile = "3.8.0"
