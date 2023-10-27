@@ -37,4 +37,4 @@ version = "4.4.6"
 [dev-dependencies]
 test-case = "3.2.1"
 test-log = { version = "0.2.13", features = ["trace"], default-features = false }
-tempfile = "3.8.0"
+tempfile = "3.8.1"
