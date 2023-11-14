@@ -14,9 +14,9 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 transmission-rpc = "0.4.2"
-tokio = { version = "1.33.0", features = ["full"] }
+tokio = { version = "1.34.0", features = ["full"] }
 tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 anyhow = "1.0.75"
 chrono = "0.4.31"
 url = "2.4.1"
@@ -32,7 +32,7 @@ rhai = { version = "1.16.3", features = ["serde"] }
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.4.7"
+version = "4.4.8"
 
 [dev-dependencies]
 test-case = "3.2.1"
