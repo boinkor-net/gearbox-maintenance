@@ -35,6 +35,6 @@ features = ["derive"]
 version = "4.4.8"
 
 [dev-dependencies]
-test-case = "3.2.1"
+test-case = "3.3.1"
 test-log = { version = "0.2.13", features = ["trace"], default-features = false }
 tempfile = "3.8.1"
