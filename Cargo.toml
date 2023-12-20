@@ -14,27 +14,27 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 transmission-rpc = "0.4.2"
-tokio = { version = "1.34.0", features = ["full"] }
+tokio = { version = "1.35.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 anyhow = "1.0.75"
 chrono = "0.4.31"
-url = "2.4.1"
+url = "2.5.0"
 parse_duration = "2.1.1"
 enum-kinds = "0.5.1"
 prometheus = "0.13.3"
 prometheus-hyper = "0.1"
 futures = "0.3.29"
-once_cell = "1.18.0"
+once_cell = "1.19.0"
 hhmmss = "0.1.0"
 serde = "*"
 rhai = { version = "1.16.3", features = ["serde"] }
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.4.8"
+version = "4.4.11"
 
 [dev-dependencies]
-test-case = "3.2.1"
-test-log = { version = "0.2.13", features = ["trace"], default-features = false }
+test-case = "3.3.1"
+test-log = { version = "0.2.14", features = ["trace"], default-features = false }
 tempfile = "3.8.1"
