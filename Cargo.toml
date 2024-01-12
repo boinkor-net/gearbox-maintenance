@@ -17,7 +17,7 @@ transmission-rpc = "0.4.2"
 tokio = { version = "1.35.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-anyhow = "1.0.76"
+anyhow = "1.0.79"
 chrono = "0.4.31"
 url = "2.5.0"
 parse_duration = "2.1.1"
@@ -32,9 +32,9 @@ rhai = { version = "1.16.3", features = ["serde"] }
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.4.11"
+version = "4.4.16"
 
 [dev-dependencies]
 test-case = "3.3.1"
 test-log = { version = "0.2.14", features = ["trace"], default-features = false }
-tempfile = "3.8.1"
+tempfile = "3.9.0"
