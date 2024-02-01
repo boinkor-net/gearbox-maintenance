@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashSet, fmt};
 
 use crate::util::chrono_optional_duration;
 use chrono::{Duration, Utc};
-use rhai::{Array, Dynamic, EvalAltResult};
+use rhai::{Array, CustomType, Dynamic, EvalAltResult, TypeBuilder};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use transmission_rpc::types::TorrentStatus;
@@ -14,22 +14,33 @@ use crate::Torrent;
 ///
 /// The policy itself doesn't need to match, this is just to indicate
 /// that it *could* even match.
-#[derive(PartialEq, Eq, Clone, Default, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Default, Debug, Serialize, Deserialize, CustomType)]
+#[rhai_type(extra = Self::build_rhai)]
 pub struct PolicyMatch {
     /// The tracker URL hostnames (only the host, not the path or
     /// port) that the policy should apply to.
+    #[rhai_type(readonly)]
     pub trackers: HashSet<String>,
 
     /// The number of files that must be present in a torrent for the
     /// policy to match. If None, any number of files matches.
+    #[rhai_type(readonly)]
     pub min_file_count: Option<i64>,
 
     /// The maximum number of files that may be present in a torrent
     /// for the policy to match. If None, any number of files matches.
+    #[rhai_type(readonly)]
     pub max_file_count: Option<i64>,
 }
 
 impl PolicyMatch {
+    fn build_rhai(builder: &mut TypeBuilder<Self>) {
+        builder
+            .with_fn("on_trackers", Self::new)
+            .with_fn("min_file_count", Self::with_min_file_count)
+            .with_fn("max_file_count", Self::with_max_file_count);
+    }
+
     pub fn new(trackers: Array) -> Result<Self, Box<EvalAltResult>> {
         let trackers: Vec<String> = Dynamic::from(trackers).into_typed_array()?;
         Ok(PolicyMatch {
@@ -121,7 +132,8 @@ impl fmt::Display for PolicyMatch {
 /// a transmission instance.
 ///
 /// There's a second set of conditions that need to match: See [PolicyMatch].
-#[derive(PartialEq, Clone, Default, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Default, Serialize, Deserialize, CustomType)]
+#[rhai_type(extra = Self::build_rhai)]
 pub struct Condition {
     /// The ratio at which a torrent qualifies for deletion, even if
     /// it has been seeded for less than [`max_seeding_time`].
@@ -141,6 +153,14 @@ pub struct Condition {
 }
 
 impl Condition {
+    fn build_rhai(builder: &mut TypeBuilder<Self>) {
+        builder
+            .with_fn("matching", Self::new)
+            .with_fn("max_ratio", Self::with_max_ratio)
+            .with_fn("min_seeding_time", Self::with_min_seeding_time)
+            .with_fn("max_seeding_time", Self::with_max_seeding_time);
+    }
+
     pub fn new() -> Result<Self, Box<EvalAltResult>> {
         Ok(Condition {
             ..Default::default()
@@ -316,7 +336,8 @@ impl<'a> ApplicableDeletePolicy<'a> {
 }
 
 /// Specifies a condition for torrents that can be deleted.
-#[derive(PartialEq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, CustomType)]
+#[rhai_type(extra = Self::build_rhai)]
 pub struct DeletePolicy {
     pub name: Option<String>,
 
@@ -332,6 +353,40 @@ pub struct DeletePolicy {
 }
 
 impl DeletePolicy {
+    fn build_rhai(builder: &mut TypeBuilder<Self>) {
+        builder
+            .with_fn("noop_delete_policy", Self::new_noop)
+            .with_fn("delete_policy", Self::new_real);
+    }
+
+    /// Constructs a "no-op" deletion policy that will not delete data if matched.
+    pub fn new_noop(
+        name: &str,
+        apply_when: PolicyMatch,
+        match_when: Condition,
+    ) -> Result<Self, Box<EvalAltResult>> {
+        Ok(Self {
+            name: Some(name.to_string()),
+            precondition: apply_when,
+            match_when: match_when.sanity_check()?,
+            delete_data: false,
+        })
+    }
+
+    /// Constructs a deletion policy that actually does delete data if matched.
+    pub fn new_real(
+        name: &str,
+        apply_when: PolicyMatch,
+        match_when: Condition,
+    ) -> Result<DeletePolicy, Box<EvalAltResult>> {
+        Ok(DeletePolicy {
+            name: Some(name.to_string()),
+            precondition: apply_when,
+            match_when: match_when.sanity_check()?,
+            delete_data: true,
+        })
+    }
+
     /// Ensures that the policy can be applied to a torrent, and only
     /// if it is, allows chaining a `.matches` call.
     pub fn applicable<'a>(&'a self, t: &'a Torrent) -> Option<ApplicableDeletePolicy> {

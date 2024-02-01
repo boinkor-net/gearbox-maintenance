@@ -5,7 +5,8 @@ use self::policy::{Condition, PolicyMatch};
 use crate::config::policy::DeletePolicy;
 use crate::config::transmission::Transmission;
 use rhai::{module_resolvers::FileModuleResolver, Array};
-use rhai::{serde::from_dynamic, Dynamic, Engine, EvalAltResult};
+use rhai::{CustomType, TypeBuilder};
+use rhai::{Dynamic, Engine, EvalAltResult};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -14,27 +15,15 @@ pub fn configure(file: &Path) -> Result<Vec<Instance>, Box<EvalAltResult>> {
     let resolver = FileModuleResolver::new_with_path(file.parent().unwrap_or(&PathBuf::from(".")));
     engine.set_module_resolver(resolver);
     engine
-        // Transmission type:
-        .register_type_with_name::<Transmission>("Transmission")
-        .register_fn("transmission", Transmission::new)
-        .register_fn("user", Transmission::with_user)
-        .register_fn("password", Transmission::with_password)
-        .register_fn("poll_interval", Transmission::with_poll_interval)
-        // Instance type:
-        .register_type_with_name::<Instance>("Instance")
-        .register_fn("rules", Instance::new)
+        // A transmission API endpoint:
+        .build_type::<Transmission>()
+        // Instances:
+        .build_type::<Instance>()
         // Policies
-        .register_fn("noop_delete_policy", construct_noop_delete_policy)
-        .register_fn("delete_policy", construct_real_delete_policy)
-        // Preconditions
-        .register_fn("on_trackers", PolicyMatch::new)
-        .register_fn("min_file_count", PolicyMatch::with_min_file_count)
-        .register_fn("max_file_count", PolicyMatch::with_max_file_count)
+        .build_type::<PolicyMatch>()
+        .build_type::<DeletePolicy>()
         // Conditions
-        .register_fn("matching", Condition::new)
-        .register_fn("max_ratio", Condition::with_max_ratio)
-        .register_fn("min_seeding_time", Condition::with_min_seeding_time)
-        .register_fn("max_seeding_time", Condition::with_max_seeding_time);
+        .build_type::<Condition>();
 
     Dynamic::from(
         engine
@@ -45,47 +34,18 @@ pub fn configure(file: &Path) -> Result<Vec<Instance>, Box<EvalAltResult>> {
     .map_err(|e| e.to_string().into())
 }
 
-pub fn construct_transmission(d: &Dynamic) -> Result<Transmission, Box<EvalAltResult>> {
-    from_dynamic::<Transmission>(d)
-}
-
-pub fn construct_condition(c: Condition) -> Condition {
-    c
-}
-
-pub fn construct_noop_delete_policy(
-    name: &str,
-    apply_when: PolicyMatch,
-    match_when: Condition,
-) -> Result<DeletePolicy, Box<EvalAltResult>> {
-    Ok(DeletePolicy {
-        name: Some(name.to_string()),
-        precondition: apply_when,
-        match_when: match_when.sanity_check()?,
-        delete_data: false,
-    })
-}
-
-pub fn construct_real_delete_policy(
-    name: &str,
-    apply_when: PolicyMatch,
-    match_when: Condition,
-) -> Result<DeletePolicy, Box<EvalAltResult>> {
-    Ok(DeletePolicy {
-        name: Some(name.to_string()),
-        precondition: apply_when,
-        match_when: match_when.sanity_check()?,
-        delete_data: true,
-    })
-}
-
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize, CustomType)]
+#[rhai_type(extra = Self::build_rhai)]
 pub struct Instance {
     pub transmission: Transmission,
     pub policies: Vec<DeletePolicy>,
 }
 
 impl Instance {
+    fn build_rhai(builder: &mut TypeBuilder<Self>) {
+        builder.with_fn("rules", Self::new);
+    }
+
     pub fn new(transmission: Transmission, policies: Array) -> Result<Self, Box<EvalAltResult>> {
         Ok(Instance {
             transmission,
