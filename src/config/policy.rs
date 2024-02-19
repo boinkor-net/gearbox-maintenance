@@ -4,7 +4,7 @@ use crate::util::chrono_optional_duration;
 use chrono::{Duration, Utc};
 use rhai::{Array, CustomType, Dynamic, EvalAltResult, TypeBuilder};
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use tracing::{debug, info};
 use transmission_rpc::types::TorrentStatus;
 use url::Url;
 
@@ -63,7 +63,7 @@ impl PolicyMatch {
         }
     }
 
-    #[tracing::instrument]
+    #[tracing::instrument(skip(t, self), fields(policy_trackers=?self.trackers))]
     fn governed_by_policy(&self, t: &Torrent) -> bool {
         if t.status != TorrentStatus::Seeding {
             debug!("Torrent {:?} is not seeding, bailing", t);
@@ -260,35 +260,43 @@ impl Condition {
     }
 
     /// Returns true if the condition matches a given torrent.
-    #[tracing::instrument]
+    #[tracing::instrument(skip(self, t),
+        fields(
+            torrent=t.name,
+            torrent_done_date=?t.done_date,
+            upload_ratio=?t.upload_ratio,
+            computed_upload_ratio=?t.computed_upload_ratio,
+        ))
+    ]
     pub fn matches_torrent(&self, t: &Torrent) -> ConditionMatch {
         if let Some(done_date) = t.done_date {
-            if done_date.timestamp() == 0 {
+            if done_date.timestamp() == 0 && self.min_seeding_time.is_some() {
                 // Can never be a useful time
-                debug!("Unset 'done' time on {:?} - leaving it alone", t);
+                info!("'done' time is 0 epoch - it'll never qualify, leaving it alone");
                 return ConditionMatch::None;
             }
             let seed_time = Utc::now() - done_date;
 
             if let Some(min_seeding_time) = self.min_seeding_time {
                 if seed_time < min_seeding_time {
-                    debug!("Torrent {:?} doesn't meet the min seeding time reqs yet", t);
+                    debug!("Torrent doesn't meet the min seeding time reqs yet");
                     return ConditionMatch::None;
                 }
             }
 
             if let Some(max_ratio) = self.max_ratio {
                 if t.upload_ratio as f64 >= max_ratio {
-                    debug!(
-                        "Torrent {:?} has a ratio that qualifies it for deletion'",
-                        t
-                    );
+                    info!("Torrent {:?} has a ratio that qualifies it for deletion", t);
                     return ConditionMatch::Ratio(t.upload_ratio as f64);
+                } else if t.upload_ratio < 0.0 && t.computed_upload_ratio >= max_ratio {
+                    info!(
+                        "Torrent has a weird-looking upload ratio, but its computed ratio would qualify it for deletion",
+                    );
                 }
             }
             if let Some(max_seeding_time) = self.max_seeding_time {
                 if seed_time >= max_seeding_time {
-                    debug!("Torrent {:?} matches seed time requirements", t);
+                    info!("Torrent matches seed time requirements");
                     return ConditionMatch::SeedTime(seed_time);
                 }
             }
@@ -465,6 +473,7 @@ mod test {
             error: ErrorType::Ok,
             error_string: "".to_string(),
             upload_ratio,
+            computed_upload_ratio: upload_ratio as f64,
             status: TorrentStatus::Seeding,
             num_files: 1,
             total_size: 30000,
@@ -509,6 +518,7 @@ mod test {
             error: ErrorType::Ok,
             error_string: "".to_string(),
             upload_ratio: 2.0,
+            computed_upload_ratio: 2.0,
             status: TorrentStatus::Seeding,
             num_files,
             total_size: 30000,
@@ -554,6 +564,7 @@ mod test {
             error: ErrorType::Ok,
             error_string: "".to_string(),
             upload_ratio: 2.0,
+            computed_upload_ratio: 2.0,
             status: TorrentStatus::Seeding,
             num_files: 3,
             total_size: 30000,

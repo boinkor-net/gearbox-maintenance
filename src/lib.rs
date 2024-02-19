@@ -18,6 +18,7 @@ pub struct Torrent {
     pub error: ErrorType,
     pub error_string: String,
     pub upload_ratio: f32,
+    pub computed_upload_ratio: f64,
     pub status: TorrentStatus,
     pub num_files: usize,
     pub total_size: usize,
@@ -34,6 +35,7 @@ impl std::fmt::Debug for Torrent {
             .field("error", &self.error)
             .field("error_string", &self.error_string)
             .field("upload_ratio", &self.upload_ratio)
+            .field("computed_upload_ratio", &self.computed_upload_ratio)
             .field("status", &self.status)
             .field("num_files", &self.num_files)
             .field("total_size", &self.total_size)
@@ -53,6 +55,7 @@ impl Torrent {
             ErrorString,
             Status,
             UploadRatio,
+            UploadedEver,
             DoneDate,
             Files,
             TotalSize,
@@ -74,6 +77,12 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
     type Error = anyhow::Error;
 
     fn try_from(t: transmission_rpc::types::Torrent) -> Result<Self, Self::Error> {
+        let (uploaded_ever, total_size) = (
+            ensure_field(t.uploaded_ever, "uploaded_ever")?,
+            ensure_field(t.total_size, "total_size")?,
+        );
+        let computed_upload_ratio = uploaded_ever as f64 / total_size as f64;
+
         Ok(Torrent {
             id: ensure_field(t.id, "id")?,
             hash: ensure_field(t.hash_string, "hash_string")?,
@@ -85,6 +94,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
             error: ensure_field(t.error, "error")?,
             error_string: ensure_field(t.error_string, "error_string")?,
             upload_ratio: ensure_field(t.upload_ratio, "upload_ratio")?,
+            computed_upload_ratio,
             status: ensure_field(t.status, "status")?,
             num_files: ensure_field(t.files, "files")?.len(),
             total_size: ensure_field(t.total_size, "total_size")? as usize,
