@@ -48,6 +48,7 @@ fn init_logging() {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
 
+#[tracing::instrument(skip(instance), fields(instance=instance.transmission.url))]
 async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> {
     let _timer = TICK_DURATION
         .get_metric_with_label_values(&[&instance.transmission.url])?
@@ -132,10 +133,7 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
 
     if take_action {
         if !delete_ids_with_data.is_empty() {
-            info!(
-                "Deleting data for {} torrents...",
-                delete_ids_with_data.len()
-            );
+            info!(torrents_to_delete=delete_ids_with_data.len(), "Deleting data...");
             client
                 .torrent_remove(delete_ids_with_data, true)
                 .await
@@ -143,10 +141,7 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                 .context("Deleting torrents with local data")?;
         }
         if !delete_ids_without_data.is_empty() {
-            info!(
-                "Deleting torrents without data for {} torrents...",
-                delete_ids_without_data.len()
-            );
+            info!(torrents_to_delete=delete_ids_without_data.len(), "Deleting torrents without data..");
             client
                 .torrent_remove(delete_ids_without_data, true)
                 .await
@@ -198,7 +193,7 @@ async fn main() -> Result<()> {
             )
             .await
         }));
-        info!("Serving prometheus metrics on http://{}/metrics", addr);
+        info!(metrics_endpoint=format!("http://{}/metrics", addr), "Serving prometheus metrics");
     }
     for handle in handles {
         handle.await??;
