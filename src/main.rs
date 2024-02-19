@@ -48,6 +48,7 @@ fn init_logging() {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
 
+#[tracing::instrument(skip(instance), fields(instance=instance.transmission.url))]
 async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> {
     let _timer = TICK_DURATION
         .get_metric_with_label_values(&[&instance.transmission.url])?
@@ -133,8 +134,8 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     if take_action {
         if !delete_ids_with_data.is_empty() {
             info!(
-                "Deleting data for {} torrents...",
-                delete_ids_with_data.len()
+                torrents_to_delete = delete_ids_with_data.len(),
+                "Deleting data..."
             );
             client
                 .torrent_remove(delete_ids_with_data, true)
@@ -144,8 +145,8 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
         }
         if !delete_ids_without_data.is_empty() {
             info!(
-                "Deleting torrents without data for {} torrents...",
-                delete_ids_without_data.len()
+                torrents_to_delete = delete_ids_without_data.len(),
+                "Deleting torrents without data.."
             );
             client
                 .torrent_remove(delete_ids_without_data, true)
@@ -169,20 +170,20 @@ async fn main() -> Result<()> {
         .into_iter()
         .map(|instance| {
             info!(
-                "Running on instance {:?}, polling every {:?}",
-                instance.transmission.url, instance.transmission.poll_interval
+                instance=instance.transmission.url, poll_interval=?instance.transmission.poll_interval,
+                "Running"
             );
             task::spawn(async move {
                 let mut ticker =
                     time::interval(instance.transmission.poll_interval.to_std().unwrap());
                 loop {
-                    debug!("Polling {}", instance.transmission.url);
-                    if let Err(e) = tick_on_instance(&instance, opt.take_action).await {
-                        warn!("Error polling {}: {}", instance.transmission.url, e);
-                    } else {
-                        debug!("Polling {} succeeded", instance.transmission.url);
-                    }
                     ticker.tick().await;
+                    debug!(instance=instance.transmission.url, "Polling");
+                    if let Err(e) = tick_on_instance(&instance, opt.take_action).await {
+                        warn!(instance=instance.transmission.url, error=%e, error_debug=?e, "Error polling");
+                    } else {
+                        debug!(instance=instance.transmission.url, "Polling succeeded");
+                    }
                 }
             })
         })
@@ -198,7 +199,10 @@ async fn main() -> Result<()> {
             )
             .await
         }));
-        info!("Serving prometheus metrics on http://{}/metrics", addr);
+        info!(
+            metrics_endpoint = format!("http://{}/metrics", addr),
+            "Serving prometheus metrics"
+        );
     }
     for handle in handles {
         handle.await??;
