@@ -133,7 +133,10 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
 
     if take_action {
         if !delete_ids_with_data.is_empty() {
-            info!(torrents_to_delete=delete_ids_with_data.len(), "Deleting data...");
+            info!(
+                torrents_to_delete = delete_ids_with_data.len(),
+                "Deleting data..."
+            );
             client
                 .torrent_remove(delete_ids_with_data, true)
                 .await
@@ -141,7 +144,10 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                 .context("Deleting torrents with local data")?;
         }
         if !delete_ids_without_data.is_empty() {
-            info!(torrents_to_delete=delete_ids_without_data.len(), "Deleting torrents without data..");
+            info!(
+                torrents_to_delete = delete_ids_without_data.len(),
+                "Deleting torrents without data.."
+            );
             client
                 .torrent_remove(delete_ids_without_data, true)
                 .await
@@ -193,7 +199,10 @@ async fn main() -> Result<()> {
             )
             .await
         }));
-        info!(metrics_endpoint=format!("http://{}/metrics", addr), "Serving prometheus metrics");
+        info!(
+            metrics_endpoint = format!("http://{}/metrics", addr),
+            "Serving prometheus metrics"
+        );
     }
     for handle in handles {
         handle.await??;
