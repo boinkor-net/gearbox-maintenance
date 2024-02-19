@@ -176,13 +176,13 @@ async fn main() -> Result<()> {
                 let mut ticker =
                     time::interval(instance.transmission.poll_interval.to_std().unwrap());
                 loop {
+                    ticker.tick().await;
                     debug!("Polling {}", instance.transmission.url);
                     if let Err(e) = tick_on_instance(&instance, opt.take_action).await {
                         warn!("Error polling {}: {}", instance.transmission.url, e);
                     } else {
                         debug!("Polling {} succeeded", instance.transmission.url);
                     }
-                    ticker.tick().await;
                 }
             })
         })
