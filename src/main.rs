@@ -169,19 +169,19 @@ async fn main() -> Result<()> {
         .into_iter()
         .map(|instance| {
             info!(
-                "Running on instance {:?}, polling every {:?}",
-                instance.transmission.url, instance.transmission.poll_interval
+                instance=instance.transmission.url, poll_interval=?instance.transmission.poll_interval,
+                "Running"
             );
             task::spawn(async move {
                 let mut ticker =
                     time::interval(instance.transmission.poll_interval.to_std().unwrap());
                 loop {
                     ticker.tick().await;
-                    debug!("Polling {}", instance.transmission.url);
+                    debug!(instance=instance.transmission.url, "Polling");
                     if let Err(e) = tick_on_instance(&instance, opt.take_action).await {
-                        warn!("Error polling {}: {}", instance.transmission.url, e);
+                        warn!(instance=instance.transmission.url, error=%e, error_debug=?e, "Error polling");
                     } else {
-                        debug!("Polling {} succeeded", instance.transmission.url);
+                        debug!(instance=instance.transmission.url, "Polling succeeded");
                     }
                 }
             })

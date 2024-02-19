@@ -63,10 +63,10 @@ impl PolicyMatch {
         }
     }
 
-    #[tracing::instrument(skip(t, self), fields(policy_trackers=?self.trackers))]
+    #[tracing::instrument(skip(t, self), fields(policy_trackers=?self.trackers, torrent=t.name))]
     fn governed_by_policy(&self, t: &Torrent) -> bool {
         if t.status != TorrentStatus::Seeding {
-            debug!("Torrent {:?} is not seeding, bailing", t);
+            debug!(status=?t.status, "Torrent is not seeding, bailing");
             return false;
         }
 
@@ -76,34 +76,22 @@ impl PolicyMatch {
             .filter_map(Url::host_str)
             .any(|tracker_host| self.trackers.contains(tracker_host))
         {
-            debug!(
-                "Torrent {:?} does not have matching trackers, expected {:?}",
-                t, self.trackers
-            );
+            debug!(actual_trackers=?t.trackers, "Torrent does not have matching trackers");
             return false;
         }
 
         let file_count = t.num_files as i64;
         match (self.min_file_count, self.max_file_count) {
             (Some(min), Some(max)) if file_count < min || file_count > max => {
-                debug!(
-                    "Torrent {:?} doesn't have the right number of files: {}",
-                    t, file_count
-                );
+                debug!(file_count=?t.num_files, ?min, ?max, "Torrent doesn't have the right number of files");
                 return false;
             }
             (None, Some(max)) if file_count > max => {
-                debug!(
-                    "Torrent {:?} doesn't have the right number of files: {}",
-                    t, file_count
-                );
+                debug!(file_count=?t.num_files, ?max, "Torrent has too many files");
                 return false;
             }
             (Some(min), None) if file_count < min => {
-                debug!(
-                    "Torrent {:?} doesn't have the right number of files: {}",
-                    t, file_count
-                );
+                debug!(file_count=?t.num_files, ?min, "Torrent has too few files");
                 return false;
             }
             (_, _) => {}
@@ -279,24 +267,31 @@ impl Condition {
 
             if let Some(min_seeding_time) = self.min_seeding_time {
                 if seed_time < min_seeding_time {
-                    debug!("Torrent doesn't meet the min seeding time reqs yet");
+                    debug!(
+                        ?min_seeding_time,
+                        "Torrent doesn't meet the min seeding time reqs yet"
+                    );
                     return ConditionMatch::None;
                 }
             }
 
             if let Some(max_ratio) = self.max_ratio {
                 if t.upload_ratio as f64 >= max_ratio {
-                    info!("Torrent {:?} has a ratio that qualifies it for deletion", t);
+                    info!(
+                        max_ratio = self.max_ratio,
+                        "Torrent has a ratio that qualifies it for deletion"
+                    );
                     return ConditionMatch::Ratio(t.upload_ratio as f64);
                 } else if t.upload_ratio < 0.0 && t.computed_upload_ratio >= max_ratio {
                     info!(
+                        max_ratio = self.max_ratio,
                         "Torrent has a weird-looking upload ratio, but its computed ratio would qualify it for deletion",
                     );
                 }
             }
             if let Some(max_seeding_time) = self.max_seeding_time {
                 if seed_time >= max_seeding_time {
-                    info!("Torrent matches seed time requirements");
+                    info!(?max_seeding_time, "Torrent matches seed time requirements");
                     return ConditionMatch::SeedTime(seed_time);
                 }
             }
