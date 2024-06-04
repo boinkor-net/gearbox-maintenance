@@ -4,7 +4,7 @@ mod util;
 use anyhow::anyhow;
 use std::convert::TryFrom;
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use transmission_rpc::types::{ErrorType, TorrentGetField, TorrentStatus};
 use url::Url;
 
@@ -88,8 +88,7 @@ impl TryFrom<transmission_rpc::types::Torrent> for Torrent {
             hash: ensure_field(t.hash_string, "hash_string")?,
             name: ensure_field(t.name, "name")?,
             done_date: t.done_date.and_then(|epoch| {
-                NaiveDateTime::from_timestamp_opt(epoch, 0)
-                    .map(|time| DateTime::from_naive_utc_and_offset(time, Utc))
+                DateTime::from_timestamp(epoch, 0)
             }),
             error: ensure_field(t.error, "error")?,
             error_string: ensure_field(t.error_string, "error_string")?,

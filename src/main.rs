@@ -205,8 +205,8 @@ async fn main() -> Result<()> {
     }
     // Any of these tasks returning is bad news:
     if let Some(task) = handles.join_next().await {
-        let status = task?.context("task exited prematurely")?;
-        anyhow::bail!("Task exited unexpectedly: {:?}", status);
+        task?.context("task exited prematurely")?;
+        anyhow::bail!("Task exited unexpectedly, but with a success?");
     }
     Ok(())
 }
