@@ -8,8 +8,9 @@ use gearbox_maintenance::{
     config::{configure, Instance},
     Torrent,
 };
+use tokio::task::JoinSet;
 use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf, sync::Arc};
-use tokio::{task, time};
+use tokio::time;
 use tracing::{debug, info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
 use transmission_rpc::{
@@ -166,46 +167,46 @@ async fn main() -> Result<()> {
     init_logging();
     // let instances = StarlarkConfig::configure(&opt.config)?;
     let instances = configure(&opt.config).map_err(|e| anyhow!("{e}"))?;
-    let mut handles: Vec<_> = instances
-        .into_iter()
-        .map(|instance| {
-            info!(
-                instance=instance.transmission.url, poll_interval=?instance.transmission.poll_interval,
-                "Running"
-            );
-            task::spawn(async move {
-                let mut ticker =
-                    time::interval(instance.transmission.poll_interval.to_std().unwrap());
-                loop {
-                    ticker.tick().await;
-                    debug!(instance=instance.transmission.url, "Polling");
-                    if let Err(e) = tick_on_instance(&instance, opt.take_action).await {
-                        warn!(instance=instance.transmission.url, error=%e, error_debug=?e, "Error polling");
-                    } else {
-                        debug!(instance=instance.transmission.url, "Polling succeeded");
-                    }
+    let mut handles = JoinSet::new();
+    for instance in instances {
+        info!(
+            instance=instance.transmission.url, poll_interval=?instance.transmission.poll_interval,
+            "Running"
+        );
+        handles.spawn(async move {
+            let mut ticker =
+                time::interval(instance.transmission.poll_interval.to_std().unwrap());
+            loop {
+                ticker.tick().await;
+                debug!(instance=instance.transmission.url, "Polling");
+                if let Err(e) = tick_on_instance(&instance, opt.take_action).await {
+                    warn!(instance=instance.transmission.url, error=%e, error_debug=?e, "Error polling");
+                } else {
+                    debug!(instance=instance.transmission.url, "Polling succeeded");
                 }
-            })
-        })
-        .collect();
+            }
+        });
+    }
 
     if let Some(addr) = opt.prometheus_listen_addr {
         let shutdown = futures::future::pending();
-        handles.push(task::spawn(async move {
+        handles.spawn(async move {
             prometheus_hyper::Server::run(
                 Arc::new(prometheus::default_registry().clone()),
                 addr,
                 shutdown,
             )
-            .await
-        }));
+                .await.context("Prometheus listener")
+        });
         info!(
             metrics_endpoint = format!("http://{}/metrics", addr),
             "Serving prometheus metrics"
         );
     }
-    for handle in handles {
-        handle.await??;
+    // Any of these tasks returning is bad news:
+    if let Some(task) = handles.join_next().await {
+        let status = task?.context("task exited prematurely")?;
+        anyhow::bail!("Task exited unexpectedly: {:?}", status);
     }
     Ok(())
 }
