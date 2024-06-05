@@ -28,7 +28,9 @@ futures = "0.3.30"
 once_cell = "1.19.0"
 hhmmss = "0.1.0"
 serde = "*"
-rhai = { version = "1.18.0", features = ["serde"] }
+# For rhai, we have to exclude ahash for now, as that pins getrandom
+# at a version incompatible with the latest rustls bug fixes:
+rhai = { version = "1.18.0", features = ["serde", "std"], default_features = false }
 
 [dependencies.clap]
 features = ["derive"]
