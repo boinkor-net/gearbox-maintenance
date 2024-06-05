@@ -8,8 +8,8 @@ use gearbox_maintenance::{
     config::{configure, Instance},
     Torrent,
 };
-use tokio::task::JoinSet;
 use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf, sync::Arc};
+use tokio::task::JoinSet;
 use tokio::time;
 use tracing::{debug, info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
@@ -196,7 +196,8 @@ async fn main() -> Result<()> {
                 addr,
                 shutdown,
             )
-                .await.context("Prometheus listener")
+            .await
+            .context("Prometheus listener")
         });
         info!(
             metrics_endpoint = format!("http://{}/metrics", addr),
