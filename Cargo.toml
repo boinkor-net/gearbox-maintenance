@@ -14,7 +14,7 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 transmission-rpc = "0.4.3"
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { version = "1.40.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 anyhow = "1.0.86"
@@ -34,7 +34,7 @@ rhai = { version = "1.19.0", features = ["serde", "std"], default_features = fal
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.5.16"
+version = "4.5.17"
 
 [dev-dependencies]
 test-case = "3.3.1"
