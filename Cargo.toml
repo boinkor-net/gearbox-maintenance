@@ -14,12 +14,12 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 transmission-rpc = "0.4.3"
-tokio = { version = "1.40.0", features = ["full"] }
+tokio = { version = "1.41.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-anyhow = "1.0.89"
+anyhow = "1.0.93"
 chrono = "0.4.38"
-url = "2.5.2"
+url = "2.5.3"
 parse_duration = "2.1.1"
 enum-kinds = "0.5.1"
 prometheus = "0.13.4"
@@ -30,7 +30,7 @@ hhmmss = "0.1.0"
 serde = "*"
 # For rhai, we have to exclude ahash for now, as that pins getrandom
 # at a version incompatible with the latest rustls bug fixes:
-rhai = { version = "1.19.0", features = ["serde", "std"], default_features = false }
+rhai = { version = "1.20.0", features = ["serde", "std"], default_features = false }
 
 [dependencies.clap]
 features = ["derive"]
@@ -39,4 +39,4 @@ version = "4.5.20"
 [dev-dependencies]
 test-case = "3.3.1"
 test-log = { version = "0.2.16", features = ["trace"], default-features = false }
-tempfile = "3.13.0"
+tempfile = "3.14.0"
