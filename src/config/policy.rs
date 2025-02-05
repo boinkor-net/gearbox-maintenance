@@ -331,7 +331,7 @@ pub struct ApplicableDeletePolicy<'a> {
     policy: &'a DeletePolicy,
 }
 
-impl<'a> ApplicableDeletePolicy<'a> {
+impl ApplicableDeletePolicy<'_> {
     /// Checks whether the torrent can be deleted.
     pub fn matches(&self) -> ConditionMatch {
         self.policy.match_when.matches_torrent(self.torrent)
@@ -392,7 +392,7 @@ impl DeletePolicy {
 
     /// Ensures that the policy can be applied to a torrent, and only
     /// if it is, allows chaining a `.matches` call.
-    pub fn applicable<'a>(&'a self, t: &'a Torrent) -> Option<ApplicableDeletePolicy> {
+    pub fn applicable<'a>(&'a self, t: &'a Torrent) -> Option<ApplicableDeletePolicy<'a>> {
         self.precondition
             .governed_by_policy(t)
             .then_some(ApplicableDeletePolicy {
