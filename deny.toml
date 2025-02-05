@@ -1,37 +1,25 @@
 [advisories]
-vulnerability = "deny"
-unmaintained = "warn"
-notice = "warn"
 ignore = [
-    # chrono calls localtime_r, which can result in memory unsafety if another
-    # thread is simultaneously calling setenv. The likelihood of this happening
-    # here is pretty low, and in any case it's something I can't help at the moment. /:
-    "RUSTSEC-2020-0159",
-    # Same for all these other time and chrono bugs - they have a new
-    # maintainer, so these rustsec advisories should go away soon
-    "RUSTSEC-2020-0071", # segfault in time crate
-    "RUSTSEC-2021-0041", # parse_duration DoS with too-large exponent
-    "RUSTSEC-2020-0056", # stdweb crate is unmaintained (transitive thru time 0.2)
+  "RUSTSEC-2021-0041", # parse_duration DoS with too-large exponent
+  "RUSTSEC-2020-0056", # stdweb crate is unmaintained (transitive thru time 0.2)
+  "RUSTSEC-2024-0384", # rhai only uses instant for wasm, which we don't use
 ]
 
 [licenses]
-unlicensed = "deny"
 confidence-threshold = 0.65  # ring's license can't be recognized well
 allow = [
-    "MPL-2.0",
+  "MPL-2.0",
+  "MIT",
+  "ISC",
+  "Unicode-3.0",
+  "CC0-1.0",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "0BSD"
 ]
 exceptions = [
     {name="ring", allow=["OpenSSL"]}
 ]
-deny = []
-copyleft = "warn"
-# Blanket approval or denial for OSI-approved or FSF Free/Libre licenses
-# * both - The license will only be approved if it is both OSI-approved *AND* FSF/Free
-# * either - The license will be approved if it is either OSI-approved *OR* FSF/Free
-# * osi-only - The license will be approved if is OSI-approved *AND NOT* FSF/Free
-# * fsf-only - The license will be approved if is FSF/Free *AND NOT* OSI-approved
-# * neither - The license will be denied if is FSF/Free *OR* OSI-approved
-allow-osi-fsf-free = "either"
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected
