@@ -13,7 +13,7 @@ documentation = "https://docs.rs/gearbox-maintenance"
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-transmission-rpc = "0.4.3"
+transmission-rpc = "0.5.0"
 tokio = { version = "1.40.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
