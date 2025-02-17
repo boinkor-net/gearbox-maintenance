@@ -1746,9 +1746,9 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.16.0"
+version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38c246215d7d24f48ae091a2902398798e05d978b24315d6efbc00ede9a8bb91"
+checksum = "a40f762a77d2afa88c2d919489e390a12bdd261ed568e60cfa7e48d4e20f0d33"
 dependencies = [
  "cfg-if",
  "fastrand",
@@ -2072,15 +2072,17 @@ dependencies = [
 
 [[package]]
 name = "transmission-rpc"
-version = "0.4.3"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "975758b6dd51b367e4454e9d4ae9b61a5419c6454822ffe1ab92c29bd6196a58"
+checksum = "05204060bd751037cbbfe488e22d4a47991aa583052e85adbf4e96ab834a41bf"
 dependencies = [
+ "base64",
  "chrono",
  "enum-iterator",
  "log",
  "reqwest",
  "serde",
+ "serde_json",
  "serde_repr",
 ]
 
