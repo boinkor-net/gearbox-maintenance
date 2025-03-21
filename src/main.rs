@@ -8,7 +8,8 @@ use gearbox_maintenance::{
     config::{configure, Instance},
     Torrent,
 };
-use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf, sync::Arc};
+use prometheus_client::registry::Registry;
+use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf};
 use tokio::task::JoinSet;
 use tokio::time;
 use tracing::{debug, info, metadata::LevelFilter, warn};
@@ -50,13 +51,9 @@ fn init_logging() {
 }
 
 #[tracing::instrument(skip(instance), fields(instance=instance.transmission.url))]
-async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> {
-    let _timer = TICK_DURATION
-        .get_metric_with_label_values(&[&instance.transmission.url])?
-        .start_timer();
-    let status = FailureCounter::new(
-        TICK_FAILURES.get_metric_with_label_values(&[&instance.transmission.url])?,
-    );
+async fn tick_on_instance(instance: &Instance, take_action: bool, metrics: &Metrics) -> Result<()> {
+    let _tick_timer = metrics.tick_duration(&instance.transmission.url);
+    let status = metrics.tick_failure_tracker(&instance.transmission.url);
     let url = Url::parse(&instance.transmission.url)?;
     let basic_auth = BasicAuth {
         user: instance.transmission.user.clone().unwrap_or_default(),
@@ -79,6 +76,10 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
     let mut sizes: HashMap<String, usize> = Default::default();
     for torrent in all_torrents {
         for (index, policy) in instance.policies.iter().enumerate() {
+            let metrics_policy = Policy::new_for(
+                &instance.transmission.url,
+                policy.name_or_index(index).as_ref(),
+            );
             let is_match = policy.applicable(&torrent).map(|a| a.matches());
             if is_match.is_none() {
                 // This torrent is not interesting to us
@@ -92,19 +93,9 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
                 .entry(policy.name_or_index(index).into_owned())
                 .and_modify(|n| *n += torrent.total_size)
                 .or_insert(torrent.total_size);
-            TORRENT_SIZE_HIST
-                .get_metric_with_label_values(&[
-                    &instance.transmission.url,
-                    policy.name_or_index(index).as_ref(),
-                ])?
-                .observe(torrent.total_size as f64);
+            metrics.track_size(&metrics_policy, torrent.total_size);
             if let Some(true) = is_match.map(|cm| cm.is_match()) {
-                TORRENT_DELETIONS
-                    .get_metric_with_label_values(&[
-                        &instance.transmission.url,
-                        policy.name_or_index(index).as_ref(),
-                    ])?
-                    .inc();
+                metrics.track_torrent_deletion(&metrics_policy);
                 info!(
                     torrent = ?torrent.name,
                     matched_policy = ?policy.name_or_index(index),
@@ -122,14 +113,16 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
         }
     }
     for (policy_name, count) in counts.iter() {
-        TORRENT_COUNT
-            .get_metric_with_label_values(&[&instance.transmission.url, policy_name])?
-            .set(*count as f64);
+        metrics.update_count(
+            &Policy::new_for(&instance.transmission.url, policy_name),
+            *count,
+        );
     }
     for (policy_name, size) in sizes.iter() {
-        TORRENT_SIZES
-            .get_metric_with_label_values(&[&instance.transmission.url, policy_name])?
-            .set(*size as f64);
+        metrics.update_size(
+            &Policy::new_for(&instance.transmission.url, policy_name),
+            *size,
+        );
     }
 
     if take_action {
@@ -163,6 +156,8 @@ async fn tick_on_instance(instance: &Instance, take_action: bool) -> Result<()> 
 #[tokio::main]
 async fn main() -> Result<()> {
     let opt = Opt::parse();
+    let mut metrics_registry = Registry::default();
+    let metrics = Metrics::for_registry(&mut metrics_registry);
 
     init_logging();
     // let instances = StarlarkConfig::configure(&opt.config)?;
@@ -173,13 +168,14 @@ async fn main() -> Result<()> {
             instance=instance.transmission.url, poll_interval=?instance.transmission.poll_interval,
             "Running"
         );
+        let metrics = metrics.clone();
         handles.spawn(async move {
             let mut ticker =
                 time::interval(instance.transmission.poll_interval.to_std().unwrap());
             loop {
                 ticker.tick().await;
                 debug!(instance=instance.transmission.url, "Polling");
-                if let Err(e) = tick_on_instance(&instance, opt.take_action).await {
+                if let Err(e) = tick_on_instance(&instance, opt.take_action, &metrics).await {
                     warn!(instance=instance.transmission.url, error=%e, error_debug=?e, "Error polling");
                 } else {
                     debug!(instance=instance.transmission.url, "Polling succeeded");
@@ -189,15 +185,13 @@ async fn main() -> Result<()> {
     }
 
     if let Some(addr) = opt.prometheus_listen_addr {
-        let shutdown = futures::future::pending();
         handles.spawn(async move {
-            prometheus_hyper::Server::run(
-                Arc::new(prometheus::default_registry().clone()),
-                addr,
-                shutdown,
-            )
-            .await
-            .context("Prometheus listener")
+            let router = metrics::metrics_router(metrics_registry);
+            let listener = tokio::net::TcpListener::bind(addr)
+                .await
+                .map_err(|e| format!("Could not listen on metrics address {:?}: {}", addr, e))
+                .expect("Listen on metrics address");
+            axum::serve(listener, router).await
         });
         info!(
             metrics_endpoint = format!("http://{}/metrics", addr),
