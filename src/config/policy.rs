@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashSet, fmt};
 
 use crate::util::chrono_optional_duration;
 use chrono::{Duration, Utc};
-use rhai::{Array, CustomType, Dynamic, EvalAltResult, TypeBuilder};
+use rhai::{Array, CustomType, Dynamic, EvalAltResult, Position, TypeBuilder};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 use transmission_rpc::types::TorrentStatus;
