@@ -1,5 +1,5 @@
 [package]
-edition = '2021'
+edition = '2024'
 name = "gearbox-maintenance"
 version = "0.0.2-dev"
 authors = ["Andreas Fuchs <asf@boinkor.net>"]
