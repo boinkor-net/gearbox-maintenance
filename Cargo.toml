@@ -28,7 +28,7 @@ hhmmss = "0.1.0"
 serde = "*"
 # For rhai, we have to exclude ahash for now, as that pins getrandom
 # at a version incompatible with the latest rustls bug fixes:
-rhai = { version = "1.19.0", features = ["serde", "std"], default_features = false }
+rhai = { version = "1.19.0", features = ["serde", "std"], default-features = false }
 axum = "0.8.3"
 
 [dependencies.clap]

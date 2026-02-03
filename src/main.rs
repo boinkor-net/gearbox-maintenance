@@ -175,11 +175,11 @@ async fn main() -> Result<()> {
             loop {
                 ticker.tick().await;
                 debug!(instance=instance.transmission.url, "Polling");
-                if let Err(e) = tick_on_instance(&instance, opt.take_action, &metrics).await {
+                match tick_on_instance(&instance, opt.take_action, &metrics).await { Err(e) => {
                     warn!(instance=instance.transmission.url, error=%e, error_debug=?e, "Error polling");
-                } else {
+                } _ => {
                     debug!(instance=instance.transmission.url, "Polling succeeded");
-                }
+                }}
             }
         });
     }
