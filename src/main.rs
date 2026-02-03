@@ -50,7 +50,7 @@ fn init_logging() {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
 
-#[tracing::instrument(skip(instance), fields(instance=instance.transmission.url))]
+#[tracing::instrument(skip(instance, metrics), fields(instance=instance.transmission.url))]
 async fn tick_on_instance(instance: &Instance, take_action: bool, metrics: &Metrics) -> Result<()> {
     let _tick_timer = metrics.tick_duration(&instance.transmission.url);
     let status = metrics.tick_failure_tracker(&instance.transmission.url);
