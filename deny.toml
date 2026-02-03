@@ -2,7 +2,7 @@
 ignore = [
   "RUSTSEC-2021-0041", # parse_duration DoS with too-large exponent
   "RUSTSEC-2020-0056", # stdweb crate is unmaintained (transitive thru time 0.2)
-  "RUSTSEC-2024-0384", # rhai only uses instant for wasm, which we don't use
+  "RUSTSEC-2025-0134", # rustls-pemfile is unmaintained (transitive via transmission)
 ]
 
 [licenses]
