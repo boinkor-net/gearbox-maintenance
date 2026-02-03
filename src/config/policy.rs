@@ -419,7 +419,7 @@ impl fmt::Display for DeletePolicy {
 }
 
 impl DeletePolicy {
-    pub fn name_or_index(&self, index: usize) -> Cow<String> {
+    pub fn name_or_index(&'_ self, index: usize) -> Cow<'_, String> {
         self.name
             .as_ref()
             .map(Cow::Borrowed)
