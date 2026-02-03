@@ -2,11 +2,11 @@ mod metrics;
 
 use metrics::*;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::Parser;
 use gearbox_maintenance::{
-    config::{configure, Instance},
     Torrent,
+    config::{Instance, configure},
 };
 use prometheus_client::registry::Registry;
 use std::{collections::HashMap, convert::TryFrom, io, net::SocketAddr, path::PathBuf};
@@ -15,8 +15,8 @@ use tokio::time;
 use tracing::{debug, info, metadata::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
 use transmission_rpc::{
-    types::{BasicAuth, Id},
     TransClient,
+    types::{BasicAuth, Id},
 };
 use url::Url;
 

@@ -3,7 +3,7 @@ use gearbox_maintenance::config::configure;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 
 fn build_config(
     main_contents: String,

@@ -212,8 +212,8 @@ pub use condition_match::*;
 
 impl fmt::Display for ConditionMatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use hhmmss::Hhmmss;
         use ConditionMatch::*;
+        use hhmmss::Hhmmss;
         match self {
             None => write!(f, "None"),
             Ratio(r) => write!(f, "Ratio({r})"),
@@ -265,14 +265,14 @@ impl Condition {
             }
             let seed_time = Utc::now() - done_date;
 
-            if let Some(min_seeding_time) = self.min_seeding_time {
-                if seed_time < min_seeding_time {
-                    debug!(
-                        ?min_seeding_time,
-                        "Torrent doesn't meet the min seeding time reqs yet"
-                    );
-                    return ConditionMatch::None;
-                }
+            if let Some(min_seeding_time) = self.min_seeding_time
+                && seed_time < min_seeding_time
+            {
+                debug!(
+                    ?min_seeding_time,
+                    "Torrent doesn't meet the min seeding time reqs yet"
+                );
+                return ConditionMatch::None;
             }
 
             if let Some(max_ratio) = self.max_ratio {
@@ -289,11 +289,11 @@ impl Condition {
                     );
                 }
             }
-            if let Some(max_seeding_time) = self.max_seeding_time {
-                if seed_time >= max_seeding_time {
-                    info!(?max_seeding_time, "Torrent matches seed time requirements");
-                    return ConditionMatch::SeedTime(seed_time);
-                }
+            if let Some(max_seeding_time) = self.max_seeding_time
+                && seed_time >= max_seeding_time
+            {
+                info!(?max_seeding_time, "Torrent matches seed time requirements");
+                return ConditionMatch::SeedTime(seed_time);
             }
         }
         ConditionMatch::None

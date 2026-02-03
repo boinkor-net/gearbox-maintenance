@@ -1,20 +1,20 @@
 use std::{sync::Arc, time::SystemTime};
 
 use axum::{
+    Router,
     body::Body,
     extract::State,
-    http::{header::CONTENT_TYPE, Response, StatusCode},
+    http::{Response, StatusCode, header::CONTENT_TYPE},
     response::IntoResponse,
     routing::get,
-    Router,
 };
 use prometheus_client::{
-    encoding::{text::encode, EncodeLabelSet},
+    encoding::{EncodeLabelSet, text::encode},
     metrics::{
         counter::Counter,
         family::Family,
         gauge::Gauge,
-        histogram::{exponential_buckets, Histogram},
+        histogram::{Histogram, exponential_buckets},
     },
     registry::Registry,
 };

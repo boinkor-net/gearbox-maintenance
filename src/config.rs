@@ -4,7 +4,7 @@ mod transmission;
 use self::policy::{Condition, PolicyMatch};
 use crate::config::policy::DeletePolicy;
 use crate::config::transmission::Transmission;
-use rhai::{module_resolvers::FileModuleResolver, Array};
+use rhai::{Array, module_resolvers::FileModuleResolver};
 use rhai::{CustomType, TypeBuilder};
 use rhai::{Dynamic, Engine, EvalAltResult};
 use serde::{Deserialize, Serialize};
