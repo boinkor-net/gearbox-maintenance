@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::util::chrono_duration;
 use chrono::Duration;
-use rhai::{CustomType, EvalAltResult, TypeBuilder};
+use rhai::{CustomType, Dynamic, EvalAltResult, TypeBuilder};
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_POLL_INTERVAL_MINS: i64 = 5;
