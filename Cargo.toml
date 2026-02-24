@@ -17,13 +17,13 @@ transmission-rpc = "0.5.0"
 tokio = { version = "1.49.0", features = ["full"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
-anyhow = "1.0.100"
-chrono = "0.4.43"
+anyhow = "1.0.102"
+chrono = "0.4.44"
 url = "2.5.2"
 parse_duration = "2.1.1"
 enum-kinds = "0.5.1"
 prometheus-client = "0.24.0"
-futures = "0.3.31"
+futures = "0.3.32"
 hhmmss = "0.1.0"
 serde = "*"
 # For rhai, we have to exclude ahash for now, as that pins getrandom
@@ -33,9 +33,9 @@ axum = "0.8.8"
 
 [dependencies.clap]
 features = ["derive"]
-version = "4.5.56"
+version = "4.5.60"
 
 [dev-dependencies]
 test-case = "3.3.1"
 test-log = { version = "0.2.19", features = ["trace"], default-features = false }
-tempfile = "3.24.0"
+tempfile = "3.26.0"
